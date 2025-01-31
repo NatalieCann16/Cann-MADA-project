@@ -1,0 +1,237 @@
+---
+title: "Example Manuscript Template for a Data Analysis Project"
+author: ""
+format:
+  docx:
+    toc: false
+    number-sections: true
+    highlight-style: github
+bibliography: ../../assets/project-citations.bib
+csl: ../../assets/american-journal-of-epidemiology.csl
+editor: 
+  markdown: 
+    wrap: sentence
+---
+
+The structure below is one possible setup for a manuscript, or a general data analysis project (including the course project).
+Adjust as needed.
+You don't need to have exactly these sections, but the content covering those sections should be addressed.
+
+This uses MS Word as output format.
+[See here](https://quarto.org/docs/output-formats/ms-word.html) for more information.
+You can switch to other formats, like html or pdf.
+See [the Quarto documentation](https://quarto.org/) for other formats.
+
+```{r, echo=FALSE, message=FALSE}
+# load a few R packages
+library(here)
+library(knitr)
+library(readr)
+library(dplyr)
+library(ggplot2)
+```
+
+**Authors**
+
+-   Natalie Cann $^{1,2}$
+
+**Author affiliations**
+
+1.  Masters in Public Health Candidate, University of Georgia
+2.  B.S. Microbiology, Virginia Tech
+
+$*$ These authors contributed equally to this work.
+
+$\land$ Corresponding author: npc31984\@uga.edu
+
+$\dagger$ Disclaimer: The opinions expressed in this article are the author's own and don't reflect their employer.
+
+{{< pagebreak >}}
+
+# Summary/Abstract
+
+*Write a summary of your project.*
+
+{{< pagebreak >}}
+
+# Introduction
+
+## General Background Information
+
+*Provide enough background on your topic that others can understand the why and how of your analysis* The novel coronvirus, SARS-CoV-2, resulted in a global pandemic unfolding in late 2019 and resulted in numerous cases and deaths worldwide [@CoronavirusCOVID19SARSCoV2].
+SARS-CoV-2, henceforth referred to as COVID-19, has resulted in 1,143,724 deaths in the United States alone between January 2020 and September 2023 [@COVID19DataNational2023].
+Of specific interest, is the virus' spike protein (S); the S protein is the primary target for neutralizing antibodies and has been used in vaccine development [@Covid19VaccinesVariants2022].
+The S protein has accumulated mutations, resulting in COVID-19 variants.
+These mutations have the ability to increase the virulence and transmissibility of the virus, and therefore, decrease the effectiveness of the COVID-19 vaccine [@Covid19VaccinesVariants2022].
+It is crucial to understand the impacts that these variants have on the number of cases and deaths attributed to COVID-19.
+A better understanding can help lead to improved vaccine development and stronger control measures.
+In this project, I aim to assess the relationship between different COVID-19 variants and the number of cases, deaths, and the duration of the epidemic that they caused.
+
+## Description of data and data source
+
+*Describe what the data is, what it contains, where it is from, etc. Eventually this might be part of a methods section.* I have decided to use a dataset that contains information on various variants of COVID-19.
+This data, found on kaggle, combines data from John Hopkins University (confirmed_cases.csv and deaths_cases.csv) and covariants.org (variants.csv).
+The link to the kaggle website containing the dataset can be found below.
+The data contains information on country, the variant, the number of days that the epidemic lasted, the mortality rate, the total number of cases, and the total number of deaths associated with the variant's epidemic in that country.
+
+## Questions/Hypotheses to be addressed
+
+*State the research questions you plan to answer with this analysis.*
+
+1.  How are variant strains of COVID-19 related to number of cases (worldwide)?
+    I aim to assess if certain variants of COVID-19 are associated with higher numbers of cases.
+    This could help to understand if some variants are more infectious and spread easier than others.
+    I will use the total_cases and variant variables to research this question.
+
+2.  How are variant strains of COVID-19 related to number of deaths (worldwide)?
+    I aim to assess if certain variants of COVID-19 are associated with higher numbers of deaths.
+    This could help to understand if some variants are more deadly than others.
+    I will use the total_deaths and variant variables to research this question.
+
+3.  How are variant strains of COVID-19 related to the duration of the epidemic that it caused (in days) (worldwide)?
+    I aim to assess if certain variants of COVID-19 are associated with longer-lasting epidemics.
+    This could provide insight into the transmissibility of the variant as well as how long it takes the cases to recover.
+    I will use the duration and variant variables to research this question.
+
+{{< pagebreak >}}
+
+# Methods
+
+*Describe your methods. That should describe the data, the cleaning processes, and the analysis approaches. You might want to provide a shorter description here and all the details in the supplement.*
+
+I will perform data cleaning and create a new dataset for each research question that only includes the variables of interest for that research question.
+I will create plots for each research question that help to display the relationship between variant and the other variable of interest.
+
+I will perform statistial analyses such as linear fit models to see if the variant is a good predictor of number of cases, number of deaths, and the duration of the epidemic.
+
+## Schematic of workflow
+
+Sometimes you might want to show a schematic diagram/figure that was not created with code (if you can do it with code, do it).
+@fig-schematic is an example of some - completely random/unrelated - schematic that was generated with Biorender.
+We store those figures in the `assets` folder.
+
+```{r}
+#| label: fig-schematic
+#| fig-cap: "A figure that is manually generated and shows some overview/schematic. This has nothing to do with the data, it's just a random one from one of our projects I found and placed here."
+#| echo: FALSE
+knitr::include_graphics(here("assets","antigen-recognition.png"))
+```
+
+## Data aquisition
+
+*As applicable, explain where and how you got the data. If you directly import the data from an online source, you can combine this section with the next.* This data set was downloaded from kaggle via the following link: https://www.kaggle.com/datasets/lumierebatalong/covid-19-variants-survival-data?r
+esource=download.
+
+## Data import and cleaning
+
+*Write code that reads in the file and cleans it so it's ready for analysis. Since this will be fairly long code for most datasets, it might be a good idea to have it in one or several R scripts. If that is the case, explain here briefly what kind of cleaning/processing you do, and provide more details and well documented code somewhere (e.g. as supplement in a paper). All materials, including files that contain code, should be commented well so everyone can follow along.* Data Import via read_csv()
+
+```{r}
+surv_variants <- read_csv("~/Desktop/MADA/Cann-MADA-project/surv_variants.csv")
+```
+
+Now that the data is imported, I will view the first rows as well as the dimensions of the dataset.
+
+```{r}
+head(surv_variants) #viewing first rows
+dim(surv_variants) #viewing dimensions
+```
+
+As you can see, the data contains 12 variables and 4113 observations.
+A few variables that I am interested in include: country, variant, duration (of epidemic, in days), mortality_rate, total_cases, and total_deaths.
+
+## Statistical analysis
+
+*Explain anything related to your statistical analyses.*
+
+{{< pagebreak >}}
+
+# Results
+
+## Exploratory/Descriptive analysis
+
+*Use a combination of text/tables/figures to explore and describe your data. Show the most important descriptive results here. Additional ones should go in the supplement. Even more can be in the R and Quarto files that are part of your project.*
+
+@tbl-summarytable shows a summary of the data.
+
+Note the loading of the data providing a **relative** path using the `../../` notation.
+(Two dots means a folder up).
+You never want to specify an **absolute** path like `C:\ahandel\myproject\results\` because if you share this with someone, it won't work for them since they don't have that path.
+You can also use the `here` R package to create paths.
+See examples of that below.
+I generally recommend the `here` package.
+
+```{r}
+#| label: tbl-summarytable
+#| tbl-cap: "Data summary table."
+#| echo: FALSE
+resulttable=readRDS("../../results/tables/summarytable.rds")
+knitr::kable(resulttable)
+```
+
+## Basic statistical analysis
+
+*To get some further insight into your data, if reasonable you could compute simple statistics (e.g. simple models with 1 predictor) to look for associations between your outcome(s) and each individual predictor variable. Though note that unless you pre-specified the outcome and main exposure, any "p\<0.05 means statistical significance" interpretation is not valid.*
+
+@fig-result shows a scatterplot figure produced by one of the R scripts.
+
+```{r}
+#| label: fig-result
+#| fig-cap: "Height and weight stratified by gender."
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","height-weight-stratified.png"))
+```
+
+## Full analysis
+
+*Use one or several suitable statistical/machine learning methods to analyze your data and to produce meaningful figures, tables, etc. This might again be code that is best placed in one or several separate R scripts that need to be well documented. You want the code to produce figures and data ready for display as tables, and save those. Then you load them here.*
+
+Example @tbl-resulttable2 shows a summary of a linear model fit.
+
+```{r}
+#| label: tbl-resulttable2
+#| tbl-cap: "Linear model fit table."
+#| echo: FALSE
+resulttable2 = readRDS(here("results","tables","resulttable2.rds"))
+knitr::kable(resulttable2)
+```
+
+{{< pagebreak >}}
+
+# Discussion
+
+## Summary and Interpretation
+
+*Summarize what you did, what you found and what it means.*
+
+## Strengths and Limitations
+
+*Discuss what you perceive as strengths and limitations of your analysis.*
+
+## Conclusions
+
+*What are the main take-home messages?*
+
+*Include citations in your Rmd file using bibtex, the list of references will automatically be placed at the end*
+
+This paper [@leek2015] discusses types of analyses.
+
+These papers [@mckay2020; @mckay2020a] are good examples of papers published using a fully reproducible setup similar to the one shown in this template.
+
+Note that this cited reference will show up at the end of the document, the reference formatting is determined by the CSL file specified in the YAML header.
+Many more style files for almost any journal [are available](https://www.zotero.org/styles).
+You also specify the location of your bibtex reference file in the YAML.
+You can call your reference file anything you like.
+
+{{< pagebreak >}}
+
+# References
+
+
+
+
+
+```{r}
+
+
+```

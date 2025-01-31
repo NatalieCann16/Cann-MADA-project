@@ -1,3 +1,4 @@
+# This is Natalie Cann's class project repository
 # Overview
 
 A template file and folder structure for a data analysis project/paper done with R/Quarto/Github. Other components (e.g., other programming languages) can be added as needed. 
