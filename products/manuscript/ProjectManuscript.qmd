@@ -29,6 +29,7 @@ library(knitr)
 library(readr)
 library(dplyr)
 library(ggplot2)
+library(here)
 ```
 
 **Authors**
@@ -127,7 +128,7 @@ esource=download.
 *Write code that reads in the file and cleans it so it's ready for analysis. Since this will be fairly long code for most datasets, it might be a good idea to have it in one or several R scripts. If that is the case, explain here briefly what kind of cleaning/processing you do, and provide more details and well documented code somewhere (e.g. as supplement in a paper). All materials, including files that contain code, should be commented well so everyone can follow along.* Data Import via read_csv()
 
 ```{r}
-surv_variants <- read_csv("~/Desktop/MADA/Cann-MADA-project/surv_variants.csv")
+surv_variants <- read_csv(here("surv_variants.csv"))
 ```
 
 Now that the data is imported, I will view the first rows as well as the dimensions of the dataset.
