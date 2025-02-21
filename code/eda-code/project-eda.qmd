@@ -1,0 +1,1093 @@
+---
+title: "An example exploratory analysis script with code pulled in"
+author: "Natalie Cann"
+date: "2025-02-21"
+output: html_document
+---
+
+# Setup
+
+I will load any packages that may be useful for exploratory data analysis. 
+
+```{r, load packages}
+library(dplyr) #for data processing/cleaning
+library(tidyr) #for data processing/cleaning
+library(skimr) #for nice visualization of data 
+library(here) #to set paths
+library(ggplot2) # for graphs
+library(kableExtra) # for tables
+library(naniar) # for missingness visualization (gg_miss_var)
+library(readr) # for reading in csv files
+library(purrr)
+library(lubridate) # for dealing with dates
+library(corrplot) # correlations
+library(gt) # for tables
+```
+
+
+Now, I will load in the 6 data sets that I created in "project-processingfile.qmd". Since these are RDS files, I will use the `readRDS` function to load them in.
+
+```{r, load data}
+# Covid vaccine datasets
+covid_vaccine_2021 <- readRDS(here("data", "processed-data", "covid-vaccine-2021.rds"))
+covid_vaccine_2022 <- readRDS(here("data", "processed-data", "covid-vaccine-2022.rds"))
+covid_vaccine_2023 <- readRDS(here("data", "processed-data", "covid-vaccine-2023.rds"))
+
+# Influenza vaccine datasets
+flu_vaccine_2021 <- readRDS(here("data", "processed-data", "flu-vaccine-2021.rds"))
+flu_vaccine_2022 <- readRDS(here("data", "processed-data", "flu-vaccine-2022.rds"))
+flu_vaccine_2023 <- readRDS(here("data", "processed-data", "flu-vaccine-2023.rds"))
+```
+
+# Exploring the Covid Vaccine Datasets
+
+## Covid Vaccine 2021
+
+```{r}
+summary(covid_vaccine_2021)
+```
+
+### Summary Statistics 
+
+I will first create a summary table that displays the mean, median, standard deviation, min, and max for the distribution and administration variables in the Covid Vaccine 2021 dataset.
+
+```{r, summary stats covid 2021}
+covid_vaccine_2021_summary <- covid_vaccine_2021 %>%
+  select (Distributed, Distributed_Janssen, Distributed_Moderna, Distributed_Pfizer, Distributed_Unk_Manuf, Administered, Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Unk_Manuf) %>%
+  summary() %>%
+  kable() 
+covid_vaccine_2021_summary
+```
+After reviewing the table above, it appers that Pfizer had the greatest mean number of vaccines distributed in 2021 (6173320), followed by Moderna (4435403), and Janssen (559312). Pfizer also had the greatest mean number of vaccines administered in 2021 (5034488), followed by Moderna (3581954), and Janssen (313112). The mean number of vaccines distributed by an unknown manufacturer was 3274 and the mean number of vaccines administered by an unknown manufacturer was 8497.3. 
+
+### Correlations 
+
+I will create a correlation matrix to assess whether or not there are any interesting correlations between the variables. 
+
+```{r, correlations covid 2021}
+# Select numeric columns relevant to the correlation matrix
+covid_vaccine_2021_corr <- covid_vaccine_2021 %>%
+  select(Distributed, Distributed_Janssen, Distributed_Moderna, Distributed_Pfizer, Distributed_Unk_Manuf, Administered, Administered_Janssen, Administered_Moderna, 
+Administered_Pfizer, Administered_Unk_Manuf)
+
+# Compute the correlation matrix
+correlation_cov_21 <- cor(covid_vaccine_2021_corr, use = "complete.obs")
+
+# Round the correlation matrix to 4 decimal places
+correlation_matrix_rounded_21 <- round(correlation_cov_21, 4)
+
+# Visualize the correlation matrix with just the correlation coefficients
+library(corrplot)
+corrplot(correlation_matrix_rounded_21, 
+         method = "number",        # Display only the correlation coefficients
+         type = "upper",           # Upper triangle of the matrix
+         tl.cex = 0.8,             # Size of text labels
+         number.cex = 0.3,         # Size of the correlation coefficient numbers
+         addCoef.col = "black",    # Color of the correlation coefficients
+         number.digits = 4)        # Display 4 decimal places for the correlation coefficients
+```
+Correlations of interest: 
+- correlation between distributed and administered vaccines: 0.9921
+- correlation between distributed Janssen and administered Janssen vaccines: 0.9895
+- correlation between distributed Moderna and administered Moderna vaccines: 0.9927
+- correlation between distributed Pfizer and administered Pfizer vaccines: 0.9870
+- correlation between distributed unknown manufacturer and administered unknown manufacturer vaccines: 0.1938
+
+### Graphs 
+
+I will create a time series plot that displays the cumulative number of COVID-19 vaccine doses administered in 2021 by manufacturer. After struggling a bit, I asked chatgpt to help me fix the code. 
+
+```{r, time series plot of doses administered in 2021, cumulative}
+covid_vaccine_2021_long <- covid_vaccine_2021 %>%
+  select(Date, 
+         Cumulative_Administered_Janssen, 
+         Cumulative_Administered_Moderna, 
+         Cumulative_Administered_Pfizer, 
+         Cumulative_Administered_Unk_Manuf) %>%
+  pivot_longer(cols = -Date, names_to = "Manufacturer", values_to = "Cumulative_Administered")
+
+# Rename the factor levels for better readability
+covid_vaccine_2021_long$Manufacturer <- factor(covid_vaccine_2021_long$Manufacturer,levels= c("Cumulative_Administered_Janssen", "Cumulative_Administered_Moderna", 
+"Cumulative_Administered_Pfizer", "Cumulative_Administered_Unk_Manuf"),
+labels = c("Janssen", "Moderna", "Pfizer", "Unknown Manufacturer"))
+
+# Create the time series plot
+ggplot(covid_vaccine_2021_long, aes(x = Date, y = Cumulative_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  labs(title = "Cumulative COVID-19 Doses \n Administered in 2021 by Manufacturer",
+       x = "Date",
+       y = "Cumulative Doses Administered",
+       color = "Vaccine Manufacturer",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Using log scale on y axis because of overlap in 2022 and 2023 graphs
+ggplot(covid_vaccine_2021_long, aes(x = Date, y = Cumulative_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  scale_y_continuous(trans = "log10") +  # Apply log scale to y-axis
+  labs(title = "Cumulative COVID-19 Doses \n Administered in 2021 by Manufacturer",
+       x = "Date",
+       y = "Cumulative Doses Administered (Log Scale)",
+       color = "Vaccine Manufacturer",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+From the graph above, you can see that Pfizer had the greatest number of cumulative doses administered in 2021, followed by Moderna, Janssen, and an unknown manufacturer.
+
+I will now create a time series plot that displays the weekly number of COVID-19 vaccine doses administered in 2021 by manufacturer. 
+
+```{r, time series plot of doses administered in 2021, weekly}
+# Aggregate weekly administered doses by manufacturer
+covid_vaccine_2021_weekly <- covid_vaccine_2021 %>%
+  mutate(Week = floor_date(Date, "week")) %>%
+  group_by(Week) %>%
+  summarise(
+    Weekly_Administered_Janssen = sum(Administered_Janssen, na.rm = TRUE),
+    Weekly_Administered_Moderna = sum(Administered_Moderna, na.rm = TRUE),
+    Weekly_Administered_Pfizer = sum(Administered_Pfizer, na.rm = TRUE),
+    Weekly_Administered_Unk_Manuf = sum(Administered_Unk_Manuf, na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = -Week, names_to = "Manufacturer", values_to = "Weekly_Administered")
+
+# Rename factor levels for better readability
+covid_vaccine_2021_weekly$Manufacturer <- factor(
+  covid_vaccine_2021_weekly$Manufacturer,
+  levels = c("Weekly_Administered_Janssen", "Weekly_Administered_Moderna", 
+             "Weekly_Administered_Pfizer", "Weekly_Administered_Unk_Manuf"),
+  labels = c("Janssen", "Moderna", "Pfizer", "Unknown Manufacturer")
+)
+
+# Create the weekly time series plot
+ggplot(covid_vaccine_2021_weekly, aes(x = Week, y = Weekly_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  labs(title = "Weekly COVID-19 Doses \n Administered in 2021 by Manufacturer",
+       x = "Week",
+       y = "Weekly Doses Administered",
+       color = "Vaccine Manufacturer",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+From the graph above, you can see that Pfizer had the greatest number of weekly doses administered in 2021, followed by Moderna, Janssen, and an unknown manufacturer.
+
+## Covid Vaccine 2022
+
+```{r}
+summary(covid_vaccine_2022)
+```
+
+### Summary Statistics 
+
+I will create a summary table for the Covid Vaccine 2022 dataset. 
+
+```{r, summary stats covid 2022}
+covid_vaccine_2022_summary <- covid_vaccine_2022 %>%
+  select (Distributed, Distributed_Janssen, Distributed_Moderna, Distributed_Pfizer, Distributed_Novavax, Distributed_Unk_Manuf, Administered, Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Novavax, Administered_Unk_Manuf) %>%
+  summary() %>%
+  kable() 
+covid_vaccine_2022_summary
+```
+After reviewing the table above, it appers that Pfizer had the greatest mean number of vaccines distributed in 2021 (13423148), followed by Moderna (8456175), Janssen (969083), and Novavax (2978). Pfizer also had the greatest mean number of vaccines administered in 2021 (10604486), followed by Moderna (6805748), Janssen (585730), and Novavax (138.6). The mean number of vaccines distributed by an unknown manufacturer was 215 and the mean number of vaccines administered by an unknown manufacturer was 17578.  
+
+### Correlations 
+
+I will create a correlation matrix.
+
+```{r, correlations covid 2022}
+# Select numeric columns relevant to the correlation matrix
+covid_vaccine_2022_corr <- covid_vaccine_2022 %>%
+  select(Distributed, Distributed_Janssen, Distributed_Moderna, Distributed_Pfizer, Distributed_Novavax, Distributed_Unk_Manuf, Administered, Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Novavax, Administered_Unk_Manuf)
+
+# Compute the correlation matrix
+correlation_cov_22 <- cor(covid_vaccine_2022_corr, use = "complete.obs")
+
+# Round the correlation matrix to 4 decimal places
+correlation_matrix_rounded_22 <- round(correlation_cov_22, 4)
+
+# Visualize the correlation matrix with just the correlation coefficients
+library(corrplot)
+corrplot(correlation_matrix_rounded_22, 
+         method = "number",        # Display only the correlation coefficients
+         type = "upper",           # Upper triangle of the matrix
+         tl.cex = 0.8,             # Size of text labels
+         number.cex = 0.3,         # Size of the correlation coefficient numbers
+         addCoef.col = "black",    # Color of the correlation coefficients
+         number.digits = 4)        # Display 4 decimal places for the correlation coefficients
+```
+Correlations of interest: 
+- correlation between distributed and administered vaccines: 0.9991
+- correlation between distributed Janssen and administered Janssen vaccines: 0.9996
+- correlation between distributed Moderna and administered Moderna vaccines: 0.9990
+- correlation between distributed Pfizer and administered Pfizer vaccines: 0.9991
+- correlation between distributed Novavax and administered Novavax vaccines: 0.9520
+- correlation between distributed unknown manufacturer and administered unknown manufacturer vaccines: 0.0952
+
+### Graphs 
+
+I will create a time series plot that displays the cumulative number of COVID-19 vaccine doses administered in 2022 by manufacturer.
+
+```{r, time series plot of doses administered in 2022, cumulative}
+covid_vaccine_2022_long <- covid_vaccine_2022 %>%
+  select(Date, 
+         Cumulative_Administered_Janssen, 
+         Cumulative_Administered_Moderna, 
+         Cumulative_Administered_Pfizer, 
+         Cumulative_Administered_Novavax,
+         Cumulative_Administered_Unk_Manuf) %>%
+  pivot_longer(cols = -Date, names_to = "Manufacturer", values_to = "Cumulative_Administered")
+
+# Rename the factor levels for better readability
+covid_vaccine_2022_long$Manufacturer <- factor(covid_vaccine_2022_long$Manufacturer,levels= c("Cumulative_Administered_Janssen", "Cumulative_Administered_Moderna", 
+"Cumulative_Administered_Pfizer", "Cumulative_Administered_Novavax", "Cumulative_Administered_Unk_Manuf"),
+labels = c("Janssen", "Moderna", "Pfizer", "Novavax", "Unknown Manufacturer"))
+
+# Create the time series plot
+ggplot(covid_vaccine_2022_long, aes(x = Date, y = Cumulative_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  labs(title = "Cumulative COVID-19 Doses \n Administered in 2022 by Manufacturer",
+       x = "Date",
+       y = "Cumulative Doses Administered",
+       color = "Vaccine Manufacturer",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Using facets because of overlap
+ggplot(covid_vaccine_2022_long, aes(x = Date, y = Cumulative_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  facet_wrap(~ Manufacturer, scales = "free_y") +  # Separate panels for each manufacturer
+  labs(title = "Cumulative COVID-19 Doses Administered in 2022",
+       x = "Date",
+       y = "Cumulative Doses Administered",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Using log scale on y axis because of overlap 
+ggplot(covid_vaccine_2022_long, aes(x = Date, y = Cumulative_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  scale_y_continuous(trans = "log10") +  # Apply log scale to y-axis
+  labs(title = "Cumulative COVID-19 Doses \n Administered in 2022 by Manufacturer",
+       x = "Date",
+       y = "Cumulative Doses Administered (Log Scale)",
+       color = "Vaccine Manufacturer",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+From the graph above, you can see that Pfizer had the greatest number of cumulative doses administered in 2022, followed by Moderna, Janssen, unknown manufacturers, and Novavax.
+
+I will now create a time series plot that displays the weekly number of COVID-19 vaccine doses administered in 2022 by manufacturer.  
+
+```{r, time series plot of doses administered in 2022, weekly}
+# Aggregate weekly administered doses by manufacturer
+covid_vaccine_2022_weekly <- covid_vaccine_2022 %>%
+  mutate(Week = floor_date(Date, "week")) %>%
+  group_by(Week) %>%
+  summarise(
+    Weekly_Administered_Janssen = sum(Administered_Janssen, na.rm = TRUE),
+    Weekly_Administered_Moderna = sum(Administered_Moderna, na.rm = TRUE),
+    Weekly_Administered_Pfizer = sum(Administered_Pfizer, na.rm = TRUE),
+    Weekly_Administered_Novavax = sum(Administered_Novavax, na.rm = TRUE),
+    Weekly_Administered_Unk_Manuf = sum(Administered_Unk_Manuf, na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = -Week, names_to = "Manufacturer", values_to = "Weekly_Administered")
+
+# Rename factor levels for better readability
+covid_vaccine_2022_weekly$Manufacturer <- factor(
+  covid_vaccine_2022_weekly$Manufacturer,
+  levels = c("Weekly_Administered_Janssen", "Weekly_Administered_Moderna", 
+             "Weekly_Administered_Pfizer", "Weekly_Administered_Novavax", "Weekly_Administered_Unk_Manuf"),
+  labels = c("Janssen", "Moderna", "Pfizer", "Novavax", "Unknown Manufacturer")
+)
+
+# Create the weekly time series plot
+ggplot(covid_vaccine_2022_weekly, aes(x = Week, y = Weekly_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  labs(title = "Weekly COVID-19 Doses \n Administered in 2022 by Manufacturer",
+       x = "Week",
+       y = "Weekly Doses Administered",
+       color = "Vaccine Manufacturer",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+From the graph above, you can see that Pfizer had the greatest number of weekly doses administered in 2022, followed by Moderna, Janssen, and an unknown manufacturer and Novavax. There is overlap between the Novavax and Unknown Manufacturer lines. 
+
+## Covid Vaccine 2023
+
+```{r}
+summary(covid_vaccine_2023)
+```
+
+### Summary Statistics 
+
+I will create a summary table for the Covid Vaccine 2023 dataset. 
+
+```{r, summary stats covid 2023}
+covid_vaccine_2023_summary <- covid_vaccine_2023 %>%
+  select (Distributed, Distributed_Janssen, Distributed_Moderna, Distributed_Pfizer, Distributed_Novavax, Distributed_Unk_Manuf, Administered, Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Novavax, Administered_Unk_Manuf) %>%
+  summary() %>%
+  kable() 
+covid_vaccine_2023_summary
+```
+After reviewing the table above, it appers that Pfizer had the greatest mean number of vaccines distributed in 2021 (17388572), followed by Moderna (10613644), Janssen (999370), and Novavax (38129). Pfizer also had the greatest mean number of vaccines administered in 2021 (12246888), followed by Moderna (7731522), Janssen (599531), and Novavax (2561). The mean number of vaccines distributed by an unknown manufacturer was 38129 and the mean number of vaccines administered by an unknown manufacturer was 26916.2.
+
+### Correlations 
+
+I will create a correlation matrix. 
+
+```{r, correlations covid 2023}
+# Select numeric columns relevant to the correlation matrix
+covid_vaccine_2023_corr <- covid_vaccine_2023 %>%
+  select(Distributed, Distributed_Janssen, Distributed_Moderna, Distributed_Pfizer, Distributed_Novavax, Distributed_Unk_Manuf, Administered, Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Novavax, Administered_Unk_Manuf)
+
+# Compute the correlation matrix
+correlation_cov_23 <- cor(covid_vaccine_2023_corr, use = "complete.obs")
+
+# Round the correlation matrix to 4 decimal places
+correlation_matrix_rounded <- round(correlation_cov_23, 4)
+
+# Visualize the correlation matrix with just the correlation coefficients
+library(corrplot)
+corrplot(correlation_matrix_rounded, 
+         method = "number",        # Display only the correlation coefficients
+         type = "upper",           # Upper triangle of the matrix
+         tl.cex = 0.8,             # Size of text labels
+         number.cex = 0.3,         # Size of the correlation coefficient numbers
+         addCoef.col = "black",    # Color of the correlation coefficients
+         number.digits = 4)        # Display 4 decimal places for the correlation coefficients
+```
+Correlations of interest: 
+- correlation between distributed and administered vaccines: 0.9999
+- correlation between distributed Janssen and administered Janssen vaccines: 0.9997
+- correlation between distributed Moderna and administered Moderna vaccines: 0.9997
+- correlation between distributed Pfizer and administered Pfizer vaccines: 0.9996 
+- correlation between distributed Novavax and administered Novavax vaccines: 0.9965
+- correlation between distributed unknown manufacturer and administered unknown manufacturer vaccines: ?
+
+### Graphs 
+
+I will create a time series plot that displays the cumulative number of COVID-19 vaccine doses administered in 2023 by manufacturer.
+
+```{r,time series plot of doses administered in 2023, cumulative}
+covid_vaccine_2023_long <- covid_vaccine_2023 %>%
+  select(Date, 
+         Cumulative_Administered_Janssen, 
+         Cumulative_Administered_Moderna, 
+         Cumulative_Administered_Pfizer, 
+         Cumulative_Administered_Novavax,
+         Cumulative_Administered_Unk_Manuf) %>%
+  pivot_longer(cols = -Date, names_to = "Manufacturer", values_to = "Cumulative_Administered")
+
+# Rename the factor levels for better readability
+covid_vaccine_2023_long$Manufacturer <- factor(covid_vaccine_2023_long$Manufacturer,levels= c("Cumulative_Administered_Janssen", "Cumulative_Administered_Moderna", 
+"Cumulative_Administered_Pfizer", "Cumulative_Administered_Novavax", "Cumulative_Administered_Unk_Manuf"),
+labels = c("Janssen", "Moderna", "Pfizer", "Novavax", "Unknown Manufacturer"))
+
+# Create the time series plot
+ggplot(covid_vaccine_2023_long, aes(x = Date, y = Cumulative_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  labs(title = "Cumulative COVID-19 Doses \n Administered in 2023 by Manufacturer",
+       x = "Date",
+       y = "Cumulative Doses Administered",
+       color = "Vaccine Manufacturer",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Using facets because over line overlap
+ggplot(covid_vaccine_2022_long, aes(x = Date, y = Cumulative_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  facet_wrap(~ Manufacturer, scales = "free_y") +  # Separate panels for each manufacturer
+  labs(title = "Cumulative COVID-19 Doses Administered in 2023",
+       x = "Date",
+       y = "Cumulative Doses Administered",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+# Using log scale on y axis because of overlap 
+ggplot(covid_vaccine_2023_long, aes(x = Date, y = Cumulative_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  scale_y_continuous(trans = "log10") +  # Apply log scale to y-axis
+  labs(title = "Cumulative COVID-19 Doses \n Administered in 2023 by Manufacturer",
+       x = "Date",
+       y = "Cumulative Doses Administered (Log Scale)",
+       color = "Vaccine Manufacturer",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+From the graph above, you can see that Pfizer had the greatest number of cumulative doses administered in 2023, followed by Moderna, Janssen, unknown manufacturers, and Novavax.
+
+I will now create a time series plot that displays the weekly number of COVID-19 vaccine doses administered in 2023 by manufacturer.  
+
+```{r, time series plot of doses administered in 2023, weekly}
+# Aggregate weekly administered doses by manufacturer
+covid_vaccine_2023_weekly <- covid_vaccine_2023 %>%
+  mutate(Week = floor_date(Date, "week")) %>%
+  group_by(Week) %>%
+  summarise(
+    Weekly_Administered_Janssen = sum(Administered_Janssen, na.rm = TRUE),
+    Weekly_Administered_Moderna = sum(Administered_Moderna, na.rm = TRUE),
+    Weekly_Administered_Pfizer = sum(Administered_Pfizer, na.rm = TRUE),
+    Weekly_Administered_Novavax = sum(Administered_Novavax, na.rm = TRUE),
+    Weekly_Administered_Unk_Manuf = sum(Administered_Unk_Manuf, na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = -Week, names_to = "Manufacturer", values_to = "Weekly_Administered")
+
+# Rename factor levels for better readability
+covid_vaccine_2023_weekly$Manufacturer <- factor(
+  covid_vaccine_2023_weekly$Manufacturer,
+  levels = c("Weekly_Administered_Janssen", "Weekly_Administered_Moderna", 
+             "Weekly_Administered_Pfizer", "Weekly_Administered_Novavax", "Weekly_Administered_Unk_Manuf"),
+  labels = c("Janssen", "Moderna", "Pfizer", "Novavax", "Unknown Manufacturer")
+)
+
+# Create the weekly time series plot
+ggplot(covid_vaccine_2023_weekly, aes(x = Week, y = Weekly_Administered, color = Manufacturer)) +
+  geom_line(size = 1) +
+  labs(title = "Weekly COVID-19 Doses \n Administered in 2021 by Manufacturer",
+       x = "Week",
+       y = "Weekly Doses Administered",
+       color = "Vaccine Manufacturer",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+From the graph above, you can see that Pfizer had the greatest number of weekly doses administered in 2023, followed by Moderna, Janssen, and an unknown manufacturer and Novavax. There is overlap between the Novavax and Unknown Manufacturer lines. 
+
+## Graph of all years together
+
+I will create a time series plot that displays the cumulative number of COVID-19 vaccine doses administered from 2021 to 2023 by manufacturer.
+
+```{r}
+# Combine data for all years into one dataframe
+covid_vaccine_combined <- bind_rows(
+  covid_vaccine_2021 %>%
+    select(Date, Cumulative_Administered_Janssen, Cumulative_Administered_Moderna, Cumulative_Administered_Pfizer, Cumulative_Administered_Unk_Manuf) %>%
+    pivot_longer(cols = -Date, names_to = "Manufacturer", values_to = "Cumulative_Administered") %>%
+    mutate(Year = 2021),  # Add Year column for 2021
+  
+  covid_vaccine_2022 %>%
+    select(Date, Cumulative_Administered_Janssen, Cumulative_Administered_Moderna, Cumulative_Administered_Pfizer, Cumulative_Administered_Novavax, Cumulative_Administered_Unk_Manuf) %>%
+    pivot_longer(cols = -Date, names_to = "Manufacturer", values_to = "Cumulative_Administered") %>%
+    mutate(Year = 2022),  # Add Year column for 2022
+  
+  covid_vaccine_2023 %>%
+    select(Date, Cumulative_Administered_Janssen, Cumulative_Administered_Moderna, Cumulative_Administered_Pfizer, Cumulative_Administered_Novavax, Cumulative_Administered_Unk_Manuf) %>%
+    pivot_longer(cols = -Date, names_to = "Manufacturer", values_to = "Cumulative_Administered") %>%
+    mutate(Year = 2023)   # Add Year column for 2023
+)
+
+# Rename the factor levels for better readability
+covid_vaccine_combined$Manufacturer <- factor(covid_vaccine_combined$Manufacturer,
+                                              levels = c("Cumulative_Administered_Janssen", "Cumulative_Administered_Moderna", 
+                                                         "Cumulative_Administered_Pfizer", "Cumulative_Administered_Novavax", 
+                                                         "Cumulative_Administered_Unk_Manuf"),
+                                              labels = c("Janssen", "Moderna", "Pfizer", "Novavax", "Unknown Manufacturer"))
+
+# Create the time series plot for all years
+all_yr_plot <- ggplot(covid_vaccine_combined, aes(x = Date, y = Cumulative_Administered, color = Manufacturer, linetype = factor(Year))) +
+  geom_line(size = 1) +
+  labs(title = "Cumulative COVID-19 Doses \n Administered (2021-2023) by Manufacturer",
+       x = "Date",
+       y = "Cumulative Doses Administered",
+       color = "Vaccine Manufacturer",
+       linetype = "Year",
+       caption = "Source: Covid Vaccine Dataset") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+all_yr_plot # print to view!
+```
+Note: the graph's x axis does not display the full year of 2023 because the data collection halted in May 2023 for this specific dataset. 
+
+I will make the graph a bit more put together and aesthetically pleasing for part 2. 
+
+```{r}
+# Create a more aesthetically pleasing time series plot with log scale
+all_yr_plot_2_log <- ggplot(covid_vaccine_combined, aes(x = Date, y = Cumulative_Administered, color = Manufacturer, linetype = factor(Year))) +
+  geom_line(size = 1.2) +  # Make lines a bit thicker
+  scale_color_brewer(palette = "Set2") +  # Use a color palette with good contrast
+  scale_linetype_manual(values = c("solid", "dashed", "dotted")) +  # Custom line types for each year
+  scale_y_log10() +  # Logarithmic scale for y-axis
+  labs(
+    title = "Cumulative COVID-19 Doses \n Administered (2021-2023) by Manufacturer",
+    x = "Date",
+    y = "Cumulative Doses \n Administered (Log Scale)",
+    color = "Vaccine Manufacturer",
+    linetype = "Year",
+    caption = "Source: Covid Vaccine Dataset"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),  # Center title and adjust size
+    plot.caption = element_text(hjust = 0.5, size = 10),  # Center caption and adjust size
+    axis.title = element_text(size = 12),  # Axis titles size
+    axis.text = element_text(size = 10),  # Axis text size
+    legend.title = element_text(size = 10),  # Legend title size
+    legend.text = element_text(size = 8),  # Legend text size
+    legend.position = "bottom",  # Move the legend to the bottom
+    legend.direction = "vertical",  # Stack the legend items vertically
+    legend.box = "horizontal",  # Arrange the legends horizontally (side-by-side)
+    legend.key.size = unit(0.5, "cm"),  # Reduce the size of the legend keys
+    panel.grid.major = element_line(color = "gray", size = 0.5, linetype = "dotted"),  # Refined grid lines
+    panel.grid.minor = element_blank(),  # Hide minor grid lines for a cleaner look
+    plot.margin = margin(20, 20, 20, 20)  # Add some margin for better spacing
+  )
+
+# Print the plot to view
+all_yr_plot_2_log
+
+# Save
+ggsave(
+  here("results", "figures", "cumul-covid-plotsub2.png"),  
+  plot = all_yr_plot_2_log,  # Specify the plot to save
+  width = 20,  # Specify width in inches
+  height = 6,  # Specify height in inches
+  dpi = 300  # Set resolution to 300 dpi for high-quality output
+)
+```
+
+## Table of Cumulative Counts
+
+I will create a table that displays the cumulative counts of covid vaccines administered across 2021, 2022, and 2023 and by manufacturer. 
+
+```{r}
+# Summarize cumulative counts for each year
+summary_2021_cov <- covid_vaccine_2021 %>%
+  summarise(
+    Year = 2021,
+    Janssen = sum(Administered_Janssen, na.rm = TRUE),
+    Moderna = sum(Administered_Moderna, na.rm = TRUE),
+    Pfizer = sum(Administered_Pfizer, na.rm = TRUE),
+    Novavax = sum(Administered_Novavax, na.rm = TRUE),
+    Unknown_Manufacturer = sum(Administered_Unk_Manuf, na.rm = TRUE)
+  )
+
+summary_2022_cov <- covid_vaccine_2022 %>%
+  summarise(
+    Year = 2022,
+    Janssen = sum(Administered_Janssen, na.rm = TRUE),
+    Moderna = sum(Administered_Moderna, na.rm = TRUE),
+    Pfizer = sum(Administered_Pfizer, na.rm = TRUE),
+    Novavax = sum(Administered_Novavax, na.rm = TRUE),
+    Unknown_Manufacturer = sum(Administered_Unk_Manuf, na.rm = TRUE)
+  )
+
+summary_2023_cov <- covid_vaccine_2023 %>%
+  summarise(
+    Year = 2023,
+    Janssen = sum(Administered_Janssen, na.rm = TRUE),
+    Moderna = sum(Administered_Moderna, na.rm = TRUE),
+    Pfizer = sum(Administered_Pfizer, na.rm = TRUE),
+    Novavax = sum(Administered_Novavax, na.rm = TRUE),
+    Unknown_Manufacturer = sum(Administered_Unk_Manuf, na.rm = TRUE)
+  )
+
+# Combine summaries into a single table
+cumulative_counts_covid <- bind_rows(summary_2021_cov, summary_2022_cov, summary_2023_cov)
+
+# Display the table
+print(cumulative_counts_covid)
+```
+As seen in the table above, each year Pfizer had the greatest number of vaccines administered. 
+
+I will now create a more aesthetically pleasing table for my part two submission. 
+
+```{r}
+# Create gt table of cumulative covid vaccine counts 
+# Convert the data to a gt table with desired formatting
+cumulative_counts_covid_gt <- cumulative_counts_covid %>%
+  gt() %>%
+  tab_header(
+    title = md("**Cumulative Counts of COVID-19 Vaccines Administered in 2021-2023**")
+  ) %>%
+  cols_label(
+    Year = md("**Year**"),
+    Janssen = md("**Janssen**"),
+    Moderna = md("**Moderna**"),
+    Pfizer = md("**Pfizer**"),
+    Novavax = md("**Novavax**"),
+    Unknown_Manufacturer = md("**Unknown Manufacturer**")
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#EAEDED"),
+      cell_text(weight = "bold", color = "black")
+    ),
+    locations = cells_body(columns = "Year")
+  ) %>%
+  tab_style(
+    style = cell_fill(color = "#EAEDED"),
+    locations = cells_body(columns = c("Janssen", "Moderna", "Pfizer", "Novavax", "Unknown_Manufacturer"))
+  ) %>%
+  # Center-align the values in the vaccine columns
+  tab_style(
+    style = cell_text(align = "center"),
+    locations = cells_body(columns = c("Janssen", "Moderna", "Pfizer", "Novavax", "Unknown_Manufacturer"))
+  ) %>%
+  # Center-align the column names
+  tab_style(
+    style = cell_text(align = "center"),
+    locations = cells_column_labels(columns = c("Year", "Janssen", "Moderna", "Pfizer", "Novavax", "Unknown_Manufacturer"))
+  ) %>%
+  # Alternate row colors between white and gray
+  tab_style(
+    style = cell_fill(color = "#F2F2F2"),  # Light gray for even rows
+    locations = cells_body(rows = 2 %% 2 == 0)  # Even rows
+  ) %>%
+  tab_style(
+    style = cell_fill(color = "white"),  # White for odd rows
+    locations = cells_body(rows = 2 %% 2 == 1)  # Odd rows
+  ) %>%
+  tab_footnote(
+    footnote = "Table 1: Cumulative Counts of COVID-19 Vaccine Doses Administered in 2021, 2022, and 2023"
+  )
+
+# Display the gt table
+cumulative_counts_covid_gt
+
+
+# Save the formatted gt table as PNG using here() to specify the path
+gtsave(cumulative_counts_covid_gt, here("results", "tables", "cumul-covid-tablesub2.png"))
+```
+
+
+
+## Simple Linear Fit Models
+
+I will run a few simple linear fit models that predict number of vaccines administered based on manufacturer. 
+
+```{r}
+# Combine the data for all years
+covid_vaccine_all <- bind_rows(
+  covid_vaccine_2021 %>% mutate(Year = 2021),
+  covid_vaccine_2022 %>% mutate(Year = 2022),
+  covid_vaccine_2023 %>% mutate(Year = 2023)
+)
+
+# Reshape the dataset to long format
+covid_vaccine_long <- covid_vaccine_all %>%
+  select(Date, Year, Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Novavax, Administered_Unk_Manuf) %>%
+  pivot_longer(cols = starts_with("Administered"), names_to = "Manufacturer", values_to = "Doses_Administered")
+
+# Rename manufacturer categories for readability
+covid_vaccine_long$Manufacturer <- factor(covid_vaccine_long$Manufacturer,
+levels = c("Administered_Janssen", "Administered_Moderna", "Administered_Pfizer", "Administered_Novavax", "Administered_Unk_Manuf"), labels = c("Janssen", "Moderna", "Pfizer", "Novavax", "Unknown Manufacturer"))
+
+# Fit a simple linear regression model predicting doses administered based on manufacturer
+model <- lm(Doses_Administered ~ Manufacturer, data = covid_vaccine_long)
+
+# Display model summary
+summary(model)
+```
+With an alpa value of 0.05, the p-values for each manufacturer are less than 0.5 (Janssen was set as the reference so it does not appear in the coefficients list with an estimate) . This means that the manufacturer has a statistically significant impact on the number of doses administered. It can be noted that Pfizer and Moderna both have very small p-values (both of 2e-16); furthermore they have positive estimate values, indicating they have a higher number of administered does than Janssen. The negative estimate values for Novavax and Unknown Manufacturer indicate that they have a lower number of administered doses compared to Janssen.
+
+# Exploring the Flu Vaccine Datasets
+
+## Flu Vaccine 2021
+
+```{r}
+summary(flu_vaccine_2021)
+```
+
+### Summary Statistics 
+
+I will create a summary table for the flu vaccine 2021 dataset. Since there are two different flu seasons within a year, I will group by the flu season and then add the min, max, mean, median, and standard deviation for the number of flu doses administered weekly in millions.
+
+```{r, summary stats flu 2021}
+flu_vaccine_2021_summary <- flu_vaccine_2021 %>%
+  group_by(Influenza_Season) %>%
+  summarise(
+    Min_Doses = min(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    Max_Doses = max(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    Mean_Doses = mean(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    Median_Doses = median(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    SD_Doses = sd(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE)
+  ) %>%
+  kable()
+
+flu_vaccine_2021_summary
+```
+The mean doses for the 2020-2021 influenza season is 164444.4 and the mean doses for the 2021-2022 influenza season is 7536521.7. Keep in mind the 2020-2021 flu season was a shorter amount of time than the 2021-2022 flu season in the year of 2021. 
+
+### Graphs 
+
+I will create a time series plot that displays the cumulative number of influenza vaccine doses administered in 2021 by manufacturer.
+
+```{r, time series plot flu 2021, cumulative}
+ggplot(flu_vaccine_2021, aes(x = Week, y = Cumulative_Flu_Doses_Distributed_Millions, color = Influenza_Season)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Cumulative Flu Vaccine Doses Administered in 2021",
+    x = "Week",
+    y = "Doses Administered (Millions)",
+    color = "Influenza Season"
+  ) 
+```
+
+Here is a time series plot that displays the weekly number of flu vaccine doses administered in 2021. 
+
+```{r, time series plot flu 2021, weekly}
+ggplot(flu_vaccine_2021, aes(x = Week, y = Flu_Doses_Administered_Weekly_Millions, color = Influenza_Season)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Weekly Flu Vaccine Doses Administered in 2021",
+    x = "Week",
+    y = "Doses Administered (Millions)",
+    color = "Influenza Season"
+  ) 
+```
+Doses administered (during 2021-2022 flu season) appear to peak around week 36-37. 
+ 
+## Flu Vaccine 2022
+
+```{r}
+summary(flu_vaccine_2022)
+```
+
+### Summary Statistics 
+
+I will create a summary table for the flu vaccine 2022 dataset. I will use the same coding format I used above for flu_vaccine_2021. 
+
+```{r, summary stats flu 2022}
+flu_vaccine_2022_summary <- flu_vaccine_2022 %>%
+  group_by(Influenza_Season) %>%
+  summarise(
+    Min_Doses = min(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    Max_Doses = max(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    Mean_Doses = mean(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    Median_Doses = median(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    SD_Doses = sd(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE)
+  ) %>%
+  kable()
+
+flu_vaccine_2022_summary
+```
+The mean doses for the 2021-2022 influenza season is 253333.3 and the mean doses for the 2022-2023 influenza season is 74221173.9. Keep in mind the 2021-2022 flu season was a shorter amount of time than the 2022-2023 flu season in the year of 2022. 
+
+### Graphs 
+
+I will create a time series plot that displays the cumulative number of influenza vaccine doses administered in 2022 by manufacturer.
+
+```{r, time series plot flu 2022, cumulative}
+ggplot(flu_vaccine_2022, aes(x = Week, y = Cumulative_Flu_Doses_Distributed_Millions, color = Influenza_Season)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Cumulative Flu Vaccine Doses Administered in 2022",
+    x = "Week",
+    y = "Doses Administered (Millions)",
+    color = "Influenza Season"
+  ) 
+```
+
+Here is a time series plot that displays the weekly number of flu vaccine doses administered in 2022. 
+
+```{r, time series plot flu 2022, weekly}
+ggplot(flu_vaccine_2022, aes(x = Week, y = Flu_Doses_Administered_Weekly_Millions, color = Influenza_Season)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Weekly Flu Vaccine Doses Administered in 2022",
+    x = "Week",
+    y = "Doses Administered (Millions)",
+    color = "Influenza Season"
+  ) 
+```
+Doses administered (during 2022-2023 flu season) appear to peak around week 36. There appears to be another peak around week 50. 
+
+## Flu Vaccine 2023
+
+```{r}
+summary(flu_vaccine_2023)
+```
+
+### Summary Statistics 
+
+I will create a summary table for the flu vaccine 2023 dataset. 
+
+```{r, summary stats flu 2023}
+flu_vaccine_2023_summary <- flu_vaccine_2023 %>%
+  group_by(Influenza_Season) %>%
+  summarise(
+    Min_Doses = min(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    Max_Doses = max(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    Mean_Doses = mean(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    Median_Doses = median(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE),
+    SD_Doses = sd(Flu_Doses_Administered_Weekly_Millions, na.rm = TRUE)
+  ) %>%
+  kable()
+
+flu_vaccine_2023_summary
+```
+The mean doses for the 2022-2023 influenza season is 295555.6 and the mean doses for the 2023-2024 influenza season is 6754782.6. Keep in mind the 2022-2023 flu season was a shorter amount of time than the 2023-2024 flu season in the year of 2023. 
+
+### Graphs 
+
+I will create a time series plot that displays the cumulative number of influenza vaccine doses administered in 2023 by manufacturer.
+
+```{r, time series plot flu 2023, cumulative}
+ggplot(flu_vaccine_2023, aes(x = Week, y = Cumulative_Flu_Doses_Distributed_Millions, color = Influenza_Season)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Cumulative Flu Vaccine Doses Administered in 2023",
+    x = "Week",
+    y = "Doses Administered (Millions)",
+    color = "Influenza Season"
+  ) 
+```
+
+Here is a time series plot that displays the weekly number of flu vaccine doses administered in 2022. 
+
+```{r, time series plot flu 2023, weekly}
+ggplot(flu_vaccine_2023, aes(x = Week, y = Flu_Doses_Administered_Weekly_Millions, color = Influenza_Season)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Weekly Flu Vaccine Doses Administered in 2023",
+    x = "Week",
+    y = "Doses Administered (Millions)",
+    color = "Influenza Season"
+  ) 
+```
+Doses administered (during 2022-2023 flu season) appear to peak around week 37-38.
+
+## Graphs of all years together 
+
+I will create a graph of the cumulative counts of flu vaccines administered across 2021, 2022, and 2023. 
+
+```{r}
+# Combine datasets
+flu_vaccine_all <- bind_rows(
+  flu_vaccine_2021 %>% mutate(Year = "2021"),
+  flu_vaccine_2022 %>% mutate(Year = "2022"),
+  flu_vaccine_2023 %>% mutate(Year = "2023")
+)
+
+# Graph
+ggplot(flu_vaccine_all, aes(x = Week, y = Cumulative_Flu_Doses_Distributed_Millions, color = Year)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Cumulative Flu Vaccine Doses Administered (2021-2023)",
+    x = "Week",
+    y = "Doses Administered (Millions)",
+    color = "Year"
+  ) +
+  theme_minimal()
+```
+Each year tends to follow a similar pattern.
+
+I will now create a more aesthetically pleasing graph for my part two submission.
+
+```{r}
+# Create an aesthetically pleasing time series plot for flu vaccines
+flu_plot <- ggplot(flu_vaccine_all, aes(x = Week, y = Cumulative_Flu_Doses_Distributed_Millions, color = factor(Year), linetype = factor(Year))) +
+  geom_line(size = 1.2) +  # Make lines thicker for better visibility
+  scale_color_brewer(palette = "Set2") +  # Use same color scheme as the COVID vaccine plot
+  scale_linetype_manual(values = c("solid", "dashed", "dotted")) +  # Match line types with the COVID graph
+  labs(
+    title = "Cumulative Flu Vaccine Doses Administered (2021-2023)",
+    x = "Week",
+    y = "Doses Administered (Millions)",
+    color = "Year",
+    linetype = "Year",
+    caption = "Source: Flu Vaccine Dataset"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16, margin = margin(b = 10)),  # Adjust title position
+    plot.caption = element_text(hjust = 0.5, size = 10),  # Center caption
+    axis.title = element_text(size = 12),  # Increase axis title size
+    axis.text = element_text(size = 10),  # Increase axis text size
+    legend.title = element_text(size = 12),  # Increase legend title size
+    legend.text = element_text(size = 10),  # Increase legend text size
+    legend.position = "bottom",  # Move legend to the bottom
+    panel.grid.major = element_line(color = "gray", size = 0.5, linetype = "dotted"),  # Adjust gridlines
+    panel.grid.minor = element_blank(),  # Hide minor gridlines
+    plot.margin = margin(20, 20, 20, 20)  # Add margins for spacing
+  )
+
+# Print the plot to view
+flu_plot
+
+# Save
+ggsave(
+  here("results", "figures", "cumul-flu-plotsub2.png"),  
+  plot = flu_plot,  # Specify the plot to save
+  width = 10,  # Specify width in inches
+  height = 6,  # Specify height in inches
+  dpi = 300  # Set resolution to 300 dpi for high-quality output
+)
+```
+
+I will create a graph of the weekly counts of flu vaccines administered across 2021, 2022, and 2023. 
+
+```{r}
+# Graph
+ggplot(flu_vaccine_all, aes(x = Week, y = Flu_Doses_Administered_Weekly_Millions, color = Year)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Weekly Flu Vaccine Doses Administered (2021-2023)",
+    x = "Week",
+    y = "Doses Administered (Millions)",
+    color = "Year"
+  ) +
+  theme_minimal()
+```
+Each year follows a similar pattern. However, it appears that 2022 had two peaks while 2021 and 2022 both had a single peak. 
+
+## Table of Cumulative Counts
+
+I will create a table that displays the cumulative counts of flu vaccines administered across 2021, 2022, and 2023. 
+
+```{r}
+# Summarize cumulative counts for each year
+summary_2021_flu <- flu_vaccine_2021 %>%
+  summarise(
+    Year = 2021,
+    Cumulative_Doses = sum(Cumulative_Flu_Doses_Distributed_Millions, na.rm = TRUE)
+  )
+
+summary_2022_flu <- flu_vaccine_2022 %>%
+  summarise(
+    Year = 2022,
+    Cumulative_Doses = sum(Cumulative_Flu_Doses_Distributed_Millions, na.rm = TRUE)
+  )
+
+summary_2023_flu <- flu_vaccine_2023 %>%
+  summarise(
+    Year = 2023,
+    Cumulative_Doses = sum(Cumulative_Flu_Doses_Distributed_Millions, na.rm = TRUE)
+  )
+
+# Combine summaries into a single table
+cumulative_counts_flu <- bind_rows(summary_2021_flu, summary_2022_flu, summary_2023_flu)
+
+# Display the table
+print(cumulative_counts_flu)
+```
+We see that out of the three years pictured here, 2021 had the greatest number of flu vaccines administered. 
+
+I will not make the table more polished and put together for the part two submission. 
+
+```{r}
+# Create a gt table for the cumulative counts of flu vaccines administered
+# Convert tibble to gt table with the desired formatting
+cumulative_counts_flu_gt <- cumulative_counts_flu %>%
+  gt() %>%
+  tab_header(
+    title = md("**Cumulative Counts of Influenza Vaccines Administered in 2021-2023**")
+  ) %>%
+  cols_label(
+    Year = md("**Year**"),
+    Cumulative_Doses = md("**Cumulative Doses (Millions)**")
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#EAEDED"),
+      cell_text(weight = "bold", color = "black")
+    ),
+    locations = cells_body(columns = "Year")
+  ) %>%
+  tab_style(
+    style = cell_fill(color = "#EAEDED"),
+    locations = cells_body(columns = "Cumulative_Doses")
+  ) %>%
+  tab_style(
+    style = cell_fill(color = "#F7F7F7"), # Light gray background for alternating rows
+    locations = cells_body(rows = seq(1, nrow(cumulative_counts_flu), 2)) # Apply to odd rows
+  ) %>%
+  tab_footnote(
+    footnote = "Table 1: Cumulative Counts of Flu Vaccine Doses Administered in 2021, 2022, and 2023"
+  )
+
+cumulative_counts_flu_gt
+
+# Save the formatted gt table as PNG using here() to specify the path
+gtsave(cumulative_counts_flu_gt, here("results", "tables", "cumul-flu-tablesub2.png"))
+
+```
+
+
+## Simple Linear Fit Models
+
+I will run a few simple linear fit models that predict number of vaccines administered based on the week of the year. 
+
+```{r}
+# Linear regression models for flu vaccine data
+model_2021 <- lm(Flu_Doses_Administered_Weekly_Millions ~ Week, data = flu_vaccine_2021)
+model_2022 <- lm(Flu_Doses_Administered_Weekly_Millions ~ Week, data = flu_vaccine_2022)
+model_2023 <- lm(Flu_Doses_Administered_Weekly_Millions ~ Week, data = flu_vaccine_2023)
+
+# Model summaries
+summary(model_2021)
+summary(model_2022)
+summary(model_2023)
+```
+2021: With an alpha of 0.05, we can conclude that the week of the year in 2021 has a statistically significant impact on the flu vaccine doses administered each week of the year. However, it is important to note that the p-value is 0.0468, which is relatively close to 0.05. 
+
+2022: With an alpha of 0.05, we can conclude that the week of the year in 2022 has a statistically significant impact on the flu vaccine doses administered each week of the year (p-value = 0.0269). 
+
+2023:  With an alpha of 0.05, we can conclude that the week of the year in 2023 does not have a statistically significant impact on the flu vaccine doses administered each week of the year (p value = 0.0986). It is interesting that 2023 does not have a statistically significant result, while 2021 and 2022 do. 
+
+# Relationship Between Covid-19 Vaccine Administration and Flu Vaccine Administration
+
+I asked ChatGPT what some interesting analyses may be and I performed a few. 
+
+*Cross-Correlation Function (CCF)*
+Here is a time series analysis that may be interesting to analyze. This can help determine if increases in COVID-19 vaccine administration are associated with the number of flu vaccines administered later.
+
+```{r}
+ccf(covid_vaccine_combined$Cumulative_Administered, flu_vaccine_all$Cumulative_Flu_Doses_Distributed_Millions, lag.max = 12, plot = TRUE)
+
+```
+The small peaks and bars suggest that there is a very weak correlation between the administration of covid vaccines and flu vaccines during this time period (2021-2023). There appear to be a few small negative lags, indicating that flu vaccinations might slightly precede Covid-19 vaccinations. Overall, there is no strong relationship. 
+
+*K-Means Clustering*
+I use K-Means Clustering to assess patterns in vaccination trends across different time periods.
+
+```{r}
+# Check for NA, NaN, or Inf in the relevant columns
+any(is.na(covid_vaccine_combined$Cumulative_Administered))
+any(is.nan(covid_vaccine_combined$Cumulative_Administered))
+any(is.infinite(covid_vaccine_combined$Cumulative_Administered))
+
+any(is.na(flu_vaccine_all$Cumulative_Flu_Doses_Distributed_Millions))
+any(is.nan(flu_vaccine_all$Cumulative_Flu_Doses_Distributed_Millions))
+any(is.infinite(flu_vaccine_all$Cumulative_Flu_Doses_Distributed_Millions))
+
+# Remove rows with NA, NaN, or Inf values in the relevant columns
+combined_data_clean <- combined_data[complete.cases(combined_data), ]
+
+# Check the structure of combined_data_clean
+str(combined_data_clean)
+
+# Ensure relevant columns are numeric
+combined_data_clean <- data.frame(
+  Cumulative_Administered = as.numeric(combined_data_clean$Cumulative_Administered),
+  Cumulative_Flu_Doses_Distributed_Millions = as.numeric(combined_data_clean$Cumulative_Flu_Doses_Distributed_Millions)
+)
+
+# Perform k-means clustering on the cleaned numeric data
+clusters <- kmeans(combined_data_clean, centers = 3)
+combined_data_clean$Cluster <- as.factor(clusters$cluster)
+
+# Visualize the cleaned data
+ggplot(combined_data_clean, aes(x = Cumulative_Administered, y = Cumulative_Flu_Doses_Distributed_Millions, color = Cluster)) +
+  geom_point() + theme_minimal()
+```
+With the three clusters specified in the code above, we see the distribution by which the data points are clustered. 
+
+
+
+Extra Code Chunks
+```{r}
+
+```
+
+```{r}
+
+```

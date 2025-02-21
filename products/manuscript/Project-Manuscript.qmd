@@ -1,0 +1,254 @@
+---
+title: "Example Manuscript Template for a Data Analysis Project"
+author: "Natalie Cann"
+format:
+  docx:
+    toc: false
+    number-sections: true
+    highlight-style: github
+bibliography: ../../assets/references/project-citations.bib
+csl: ../../assets/american-journal-of-epidemiology.csl
+editor: 
+  markdown: 
+    wrap: sentence
+---
+
+# Load Packages 
+
+```{r, echo=FALSE, message=FALSE}
+# load a few R packages
+library(here)
+library(knitr)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(here)
+```
+
+**Authors**
+
+-   Natalie Cann $^{1,2}$
+
+**Author affiliations**
+
+1.  Masters in Public Health Candidate, University of Georgia
+2.  B.S. Microbiology, Virginia Tech
+
+$\dagger$ Disclaimer: The opinions expressed in this article are the author's own and don't reflect those of their university affiliations.
+
+{{< pagebreak >}}
+
+# Summary/Abstract
+
+*Add in Summary/Abstract Once Study is Complete*
+
+
+{{< pagebreak >}}
+
+# Introduction
+
+## General Background Information
+
+*Not Complete*
+
+Respiratory illnesses are a large burden to both medical and public health systems. These illnesses are known to spike in the colder months, such as December, January, and February. One such respiratory illness is Influenza. Seasonal Influenza in humans is caused by influenza viruses that undergo antigenic drift and antigenic shift, resulting in novel flu viruses each year. Antigenic drift is known to occur when mutations develop within the surface proteins hemagglutinin (HA) and neuraminidase (NA) [@cdcFluViruses2024]. These surface proteins serve as anitgens which are recognized by our immune systems, which will produce antibodies to recognize the surface protein antigens [@cdcFluViruses2024]. Antigenic shift results when entirely new HA and/or NA proteins develop, creating a novel flu virus [@cdcFluViruses2024]. According to the CDC, the most common month for a peak in flu cases to be observed is February; 17 of the past 40 flu seasons have reached peaks in February [@cdcFluSeason2024]. 
+
+Another respiratory virus is COVID-19, also known as severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) [@CoronavirusDisease2019]. COVID-19 was declared a pandemic in 2020. The virus is known to spread through fluid droplets shared between individuals in close contact as well as through the air [@CoronavirusDisease2019]. The spike protein is known to mediate entry of the virus into host cells via its S1 subunit, which binds to a receptor on the host cell, and S2 subunit, which allows the virus to fuse with the host cell [@liStructureFunctionEvolution2016]. Therefore, the spike protein is a major antigen of the COVID-19 virus recognized by the immune system.
+
+Many individuals receive vaccinations to protect themselves from these respiratory illnesses. Flu vaccines are designed to protect individuals against the flu strains that are predicted to be most common during the upcoming flu season [@cdcKeyFactsSeasonal2025]. The flu vaccine results in the production of antibodies within roughly two weeks after vaccination [@cdcKeyFactsSeasonal2025]. The effectiveness of the flu vaccines varies with strains in circulation and the individual's health status [@cdcKeyFactsSeasonal2025]. The flu vaccine will be more beneficial during years which the vaccine matches the strains of that season [@cdcKeyFactsSeasonal2025]. 
+
+There are two different types of COVID-19 vaccinations available in the United States. The first is the mRNA vaccine, which uses mRNA created in a laboratory that triggers an immune response within the body that produces antibodies to protect against COVID-19 [@cdcCOVID19VaccineBasics2024]. The second is the protein subunit vaccine, which contains spike proteins from the virus as well as an adjuvant; this enables the body to produce antibodies and better recognize the spike protein in the future [@cdcCOVID19VaccineBasics2024]. The Pfizer-BioNTech and Moderna vaccines are both mRNA vaccines [@ComparingCOVID19Vaccines]. The Novavax vaccine is a protein subunit vaccine [@ComparingCOVID19Vaccines]. The Janssen vaccine, also known as the Johnson and Johnson vaccine was disconintued [@ComparingCOVID19Vaccines]. This vaccine utilized an adenvovirus as a vector [@JohnsonJohnsonAdenovirus]. Adenovirus vaccines use an omnipresent virus that is altered so that it cannot cause illness or integrate into the host's DNA [@JohnsonJohnsonAdenovirus]. The adenovirus is engineered to contain a genes involved in making the spike protein COVID-19, which then leads to the immune system producing antibodies for the spike protein [@JohnsonJohnsonAdenovirus].
+
+## Description of data and data source
+
+*Data Sources*
+
+The datasets used in this analysis are both from the CDC. The first dataset, regarding COVID-19 vaccinations, contains information on the distribution and administration of COVID-19 vaccinations between 2020 and 2023. The second dataset, focusing on influenza vaccinations, contains information on the distribution of flu vaccines between 2018 and 2024. The influenza vaccination dataset is grouped by flu-season. More information on the datasets can be found in the "Methods" section under "Data Acquisition." 
+
+## Questions/Hypotheses to be addressed
+
+I aim to assess if the administration of the COVID-19 vaccine is associated with its manufacturer. I will examine whether or not certain manufacturers had a greater number of administered doses. I will also assess whether or not the administration of the COVID-19 vaccine is associated with the administration of the flu vaccine by looking at the number of doses of the vaccines administered in the same year. 
+
+{{< pagebreak >}}
+
+# Methods
+
+## Schematic of Workflow for Analysis
+
+*Will be completed upon finishing the analysis*
+
+Along with descriptive analyses, I plan on using (simple linear) regression models to assess the potential relationship between the administration of the COVID-19 vaccine and its manufacturer as well as the potential relationship between the administration of the COVID-19 vaccine and the administration of the flu vaccine. I will peform a cross-correlation function to assess whether or not increases in Covid-19 vaccine administration are associated with increases in flu vaccine administration. I will use K-Means Clustering to assess patterns in vaccination trends across different time periods. This may be subject to change as we learn more in the course. Then I will polish up my graphs and tables. 
+
+Note: store in 'assets' folder; it is ok to add a schematic diagram/figure not created with code
+
+Use Code Chunk below: 
+
+```{r}
+#| label: Schematic of Workflow for Analysis
+#| fig-cap: ""
+#| echo: FALSE
+knitr::include_graphics(here())
+```
+
+## Data Aquisition
+
+**COVID-19 Dataset:** https://data.cdc.gov/Vaccinations/COVID-19-Vaccinations-in-the-United-States-Jurisdi/unsk-b7fc/about_data
+
+This dataset came from the CDC and contains information on the distribution and administration of COVID-19 vaccinations between 2020 and 2023.Data is included from all sites that distribute and administer vaccinations in the U.S.; such as jurisdictional partner clinics, retail pharmacies, dialysis centers, long-term care facilities, Federal Emergency Management Agency (FEMA), and federal entity facilities. The CDC states that the dataset was provided by IISInfo. I downloaded the data directly from the CDC website provided above. This dataset was last updated May 12, 2023.
+
+**Influenza Dataset:** https://data.cdc.gov/Vaccinations/Weekly-Cumulative-Doses-in-Millions-of-Influenza-V/k87d-gv3u/about_data
+
+This dataset also came from the CDC and contains information regarding the doses of flu vaccines in Millions distributed between 2018 and 2024. According to the CDC website, the dataset was provided by the National Center for Immunization and Respiratory Diseases (NCIRD). This dataset was last updated March 29, 2024. 
+
+## Data Import and Cleaning Process
+
+Below, I will import the two datasets via read_csv() function from the readr package.
+
+```{r}
+covid_vaccine <- read_csv(here("data", "raw-data", "COVID-19_Vaccinations_in_the_United_States_Jurisdiction_20250208.csv"))
+flu_vaccine <- read_csv(here("data", "raw-data", "Weekly_Cumulative_Doses__in_Millions__of_Influenza_Vaccine_Distributed_by_Flu_Season_in_the_United_States_20250208.csv"))
+```
+I will provide a view of the first rows as well as the dimensions of the datasets.
+
+```{r}
+# Covid Dataset
+head(covid_vaccine) #viewing first rows
+dim(covid_vaccine) #viewing dimensions
+
+# Influenza Dataset
+head(flu_vaccine) #viewing first rows
+dim(flu_vaccine) #viewing dimensions
+```
+
+The COVID_vaccine dataset contains 109 variables and 38,488 observations.
+I am specifically interested in the variables that contain the counts of administered COVID-19 vaccines by manufacturer (Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Novavax, and Administered_Unk_Manuf) as well as the variable "date" (day that the vaccine data was reported).
+
+The flu_vaccine dataset contains 9 variables and 193 observations (considerably less than the COVID_vaccine dataset).
+The variables of interest from this dataset include: year (Influenza_Season) and the cumulative doses distributed (Cumulative_Flu_Doses_Distributed; Note: this is in millions).
+
+I performed the following data processing and cleaning steps for the COVID-19 vaccine dataset: 
+- Defined variables
+- Assessed missingness of data and variable classes
+- Used the lubridate package to fix the date format
+- Select variables of interest to work with for analysis 
+- Create separate datasets for 2021, 2022, and 2023
+- Create a new variable that calculates the cumulative doses distributed and administered for each manufacturer
+- Save final datasets as RDS files
+
+I performed the following data processing and cleaning steps for the influenza vaccine dataset: 
+- Defined variables
+- Assessed missingness of data and variable classes
+- Used the lubridate package to fix the date format
+- Create a new variable that contains the number of flu vaccine doses administered per week
+- Create two new variables that display the number of doses of the flu vaccine administered in millions (one variable for cumulative doses and the other for weekly doses)
+- Create separate datasets for 2021, 2022, and 2023
+- Save final datasets as RDS files
+
+## Statistical analysis
+
+*Not Fully Complete Yet*
+I will perform simple linear regressions, k-means clustering, and cross-correlation functions to assess the relationships between the administration of the COVID-19 vaccine and its manufacturer as well as the administration of the flu vaccine. I will change this section as more is covered in the course. 
+
+
+{{< pagebreak >}}
+
+# Results
+
+## Exploratory/Descriptive analysis
+
+*Not complete yet - I have not yet polished up my graphs and tables* 
+
+The table below displays the cumulative counts of flu vaccine doses administered in 2021, 2022, and 2023. 
+
+```{r}
+#| label: Cumulative Covid Vaccine Counts
+#| tbl-cap: "Table 1: Cumulative Counts of Flu Vaccine Doses Administered in 2021, 2022, and 2023"
+#| echo: FALSE
+# Display the PNG image using knitr's include_graphics() function
+knitr::include_graphics("../../results/tables/cumul-covid-tablesub2.png")
+```
+As seen in the table above, each year Pfizer had the greatest number of vaccines administered. Followed by Moderna, Janssen, Unknown Manufacturer, and Novavax. It is important to note that Novavax was not available in 2021; it became available in late 2022. 
+
+The plot below displays the cumulative counts of COVID-19 vaccine doses administered in 2021, 2022, and 2023 on a logarithmic scale for better visibility. 
+
+```{r}
+#| label: Cumulative COVID-19 Vaccine Counts Plot
+#| tbl-cap: "Figure 1: Cumulative Counts of COVID-19 Vaccine Doses Administered in 2021, 2022, and 2023"
+#| echo: FALSE
+# Display the PNG image using knitr's include_graphics() function
+knitr::include_graphics("../../results/figures/cumul-covid-plotsub2.png")
+```
+
+The plot below displays the cumulative counts of flu vaccine doses administered in 2021, 2022, and 2023. 
+
+```{r}
+#| label: Cumulative Flu Vaccine Counts Plot
+#| tbl-cap: "Figure 1: Cumulative Counts of Flu Vaccine Doses Administered in 2021, 2022, and 2023"
+#| echo: FALSE
+# Display the PNG image using knitr's include_graphics() function
+knitr::include_graphics("../../results/figures/cumul-flu-plotsub2.png")
+```
+
+The table below displays the cumulative counts of flu vaccine doses administered in 2021, 2022, and 2023. 
+
+```{r}
+#| label: Cumulative Flu Vaccine Counts
+#| tbl-cap: "Table 2: Cumulative Counts of Flu Vaccine Doses Administered in 2021, 2022, and 2023"
+#| echo: FALSE
+# Display the PNG image using knitr's include_graphics() function
+knitr::include_graphics("../../results/tables/cumul-flu-tablesub2.png")
+```
+
+## Basic statistical analysis
+
+*Not completed yet - simple statistics (simple models with 1 predictor); look for associations b/w outcomes and each individual predictor variable; unless you pre-specified the outcome and main exposure, any "p\<0.05 means statistical significance" interpretation is not valid.* 
+
+Use Code Chunk below: 
+
+```{r}
+#| label: Basic Statistical Analysis
+#| fig-cap: ""
+#| echo: FALSE
+knitr::include_graphics(here())
+```
+
+## Full analysis
+
+*Not completed yet - use one or several statistical/machine learning methods to analyze your data and make figures/tables* 
+
+Use Code Chunk below: 
+
+```{r}
+#| label: Full Analysis
+#| fig-cap: ""
+#| echo: FALSE
+knitr::include_graphics(here())
+```
+
+{{< pagebreak >}}
+
+# Discussion
+
+## Summary and Interpretation
+
+*Not completed yet*
+
+## Strengths and Limitations
+
+*Not completed yet*
+
+## Conclusions
+
+*Not completed yet - include main take home messages*
+
+{{< pagebreak >}}
+
+# References
+
+Note: reference formatting is determined by the CSL file specified in the YAML header
+
+
+```{r}
+
+
+```
