@@ -1,5 +1,5 @@
 ---
-title: "Example Manuscript Template for a Data Analysis Project"
+title: "Manuscript for Analysis of COVID-19 and Influenza Vaccine Associations"
 author: "Natalie Cann"
 format:
   docx:
