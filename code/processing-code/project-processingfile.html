@@ -701,7 +701,7 @@ $Current_Through
 <span id="cb78-8"><a href="#cb78-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>It appeared as though this worked. I did some simple math to make sure that the new variable was created correctly. (0.52 + 2.71 = 3.23; 6.95 + 2.71 + 0.52 = 10.18 … ) Furthermore, there is no overlap of subtraction between the seasons.</p>
-<p>Now, I will create two variables that display the number of doses of the flu vaccine administered in millions to get the accurate count. (One for the cumulative doses and one for the weekly doses)</p>
+<p>Now, I will create two variables that display the number of doses of the flu vaccine administered in millions to get the accurate count (One for the cumulative doses and one for the weekly doses).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>flu_vaccine <span class="ot">&lt;-</span> flu_vaccine <span class="sc">%&gt;%</span> <span class="co"># creating new variables that display the number of doses of the flu vaccine administered in millions (one for the cumulative doses and one for the weekly doses)</span></span>
 <span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Cumulative_Flu_Doses_Distributed_Millions =</span> Cumulative_Flu_Doses_Distributed <span class="sc">*</span> <span class="dv">1000000</span>,</span>

@@ -1033,54 +1033,17 @@ summary(model_2023)
 
 2023:  With an alpha of 0.05, we can conclude that the week of the year in 2023 does not have a statistically significant impact on the flu vaccine doses administered each week of the year (p value = 0.0986). It is interesting that 2023 does not have a statistically significant result, while 2021 and 2022 do. 
 
-# Relationship Between Covid-19 Vaccine Administration and Flu Vaccine Administration
+# Relationship Between COVID-19 Vaccine Administration and Flu Vaccine Administration
 
-I asked ChatGPT what some interesting analyses may be and I performed a few. 
+I will now do briefly attempt to explore the relationship between COVID-10 vaccine administration and flu vaccine administration. More of this will be done in the data analysis.
 
 *Cross-Correlation Function (CCF)*
 Here is a time series analysis that may be interesting to analyze. This can help determine if increases in COVID-19 vaccine administration are associated with the number of flu vaccines administered later.
 
 ```{r}
 ccf(covid_vaccine_combined$Cumulative_Administered, flu_vaccine_all$Cumulative_Flu_Doses_Distributed_Millions, lag.max = 12, plot = TRUE)
-
 ```
 The small peaks and bars suggest that there is a very weak correlation between the administration of covid vaccines and flu vaccines during this time period (2021-2023). There appear to be a few small negative lags, indicating that flu vaccinations might slightly precede Covid-19 vaccinations. Overall, there is no strong relationship. 
-
-*K-Means Clustering*
-I use K-Means Clustering to assess patterns in vaccination trends across different time periods.
-
-```{r}
-# Check for NA, NaN, or Inf in the relevant columns
-any(is.na(covid_vaccine_combined$Cumulative_Administered))
-any(is.nan(covid_vaccine_combined$Cumulative_Administered))
-any(is.infinite(covid_vaccine_combined$Cumulative_Administered))
-
-any(is.na(flu_vaccine_all$Cumulative_Flu_Doses_Distributed_Millions))
-any(is.nan(flu_vaccine_all$Cumulative_Flu_Doses_Distributed_Millions))
-any(is.infinite(flu_vaccine_all$Cumulative_Flu_Doses_Distributed_Millions))
-
-# Remove rows with NA, NaN, or Inf values in the relevant columns
-combined_data_clean <- combined_data[complete.cases(combined_data), ]
-
-# Check the structure of combined_data_clean
-str(combined_data_clean)
-
-# Ensure relevant columns are numeric
-combined_data_clean <- data.frame(
-  Cumulative_Administered = as.numeric(combined_data_clean$Cumulative_Administered),
-  Cumulative_Flu_Doses_Distributed_Millions = as.numeric(combined_data_clean$Cumulative_Flu_Doses_Distributed_Millions)
-)
-
-# Perform k-means clustering on the cleaned numeric data
-clusters <- kmeans(combined_data_clean, centers = 3)
-combined_data_clean$Cluster <- as.factor(clusters$cluster)
-
-# Visualize the cleaned data
-ggplot(combined_data_clean, aes(x = Cumulative_Administered, y = Cumulative_Flu_Doses_Distributed_Millions, color = Cluster)) +
-  geom_point() + theme_minimal()
-```
-With the three clusters specified in the code above, we see the distribution by which the data points are clustered. 
-
 
 
 Extra Code Chunks
