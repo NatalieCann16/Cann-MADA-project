@@ -38,3 +38,9 @@ Folder structure: ('readme' files are in each folder as well)
   * `readme.md`: this file contains instructions or details about the folder it
   is located in. You are reading the project-level `README.md` file right now. There is a `readme` in almost every folder.
   * `data-analysis-template.Rproj` is a file that tells RStudio that this is the main folder for a project. Rename if you want.
+
+# Order to Run Code In
+In order for reproducibility, the files should be run in the following order: 
+1. processing code (in code folder): project-processingfile.qmd
+2. eda code (in code folder): project-eda.qmd
+3. analysis code (in code folder): project-analysis.qmd
