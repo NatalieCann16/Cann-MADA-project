@@ -45,17 +45,17 @@ Loading in datasets made for some analysis in end of EDA document.
 # Combine data for all years into one dataframe - covid
 covid_vaccine_combined <- bind_rows(
   covid_vaccine_2021 %>%
-    select(Date, Cumulative_Administered_Janssen, Cumulative_Administered_Moderna, Cumulative_Administered_Pfizer, Cumulative_Administered_Unk_Manuf) %>%
+    dplyr::select(Date, Cumulative_Administered_Janssen, Cumulative_Administered_Moderna, Cumulative_Administered_Pfizer, Cumulative_Administered_Unk_Manuf) %>%
     pivot_longer(cols = -Date, names_to = "Manufacturer", values_to = "Cumulative_Administered") %>%
     mutate(Year = 2021),  # Add Year column for 2021
   
   covid_vaccine_2022 %>%
-    select(Date, Cumulative_Administered_Janssen, Cumulative_Administered_Moderna, Cumulative_Administered_Pfizer, Cumulative_Administered_Novavax, Cumulative_Administered_Unk_Manuf) %>%
+    dplyr::select(Date, Cumulative_Administered_Janssen, Cumulative_Administered_Moderna, Cumulative_Administered_Pfizer, Cumulative_Administered_Novavax, Cumulative_Administered_Unk_Manuf) %>%
     pivot_longer(cols = -Date, names_to = "Manufacturer", values_to = "Cumulative_Administered") %>%
     mutate(Year = 2022),  # Add Year column for 2022
   
   covid_vaccine_2023 %>%
-    select(Date, Cumulative_Administered_Janssen, Cumulative_Administered_Moderna, Cumulative_Administered_Pfizer, Cumulative_Administered_Novavax, Cumulative_Administered_Unk_Manuf) %>%
+    dplyr::select(Date, Cumulative_Administered_Janssen, Cumulative_Administered_Moderna, Cumulative_Administered_Pfizer, Cumulative_Administered_Novavax, Cumulative_Administered_Unk_Manuf) %>%
     pivot_longer(cols = -Date, names_to = "Manufacturer", values_to = "Cumulative_Administered") %>%
     mutate(Year = 2023)   # Add Year column for 2023
 )
@@ -92,7 +92,7 @@ covid_vaccine_all <- bind_rows(
 
 # Reshape the dataset to long format
 covid_vaccine_long <- covid_vaccine_all %>%
-  select(Date, Year, Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Novavax, Administered_Unk_Manuf) %>%
+  dplyr::select(Date, Year, Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Novavax, Administered_Unk_Manuf) %>%
   pivot_longer(cols = starts_with("Administered"), names_to = "Manufacturer", values_to = "Doses_Administered")
 
 # Rename manufacturer categories for readability
