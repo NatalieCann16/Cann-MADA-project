@@ -43,4 +43,7 @@ Folder structure: ('readme' files are in each folder as well)
 In order for reproducibility, the files should be run in the following order: 
 1. processing code (in code folder): project-processingfile.qmd
 2. eda code (in code folder): project-eda.qmd
-3. analysis code (in code folder): project-analysis.qmd
+3. analysis code (in code folder): project-analysis.qmd, then project-extra-analysis.qmd
+4. formatting of tables and figures for manuscript (in results folder): tables-and-figures.qmd *(THIS FILE MUST BE RUN LAST IN ORDER FOR EVERYTHING TO BE PRESENT IN ENVIRONMENT!!!)*
+
+Then, the Manuscript can be run. 

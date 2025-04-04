@@ -1,3 +1,4 @@
 # analysis-code
 
-This folder containsan R script with a bit of a statistical analysis. This is only implemented as an R script, no Quarto version. 
+This folder contains an R script with a bit of a statistical analysis ('project-analysis.qmd'). Further statistical analysis is done in the 'project-extra-analysis.qmd' file. 
+

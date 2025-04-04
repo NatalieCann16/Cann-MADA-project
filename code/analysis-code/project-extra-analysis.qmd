@@ -1,0 +1,415 @@
+---
+title: "More Data Analysis"
+author: "Natalie Cann"
+date: "2025-04-04"
+output: html_document
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Project Aims for Personal Reference
+
+1. I aim to assess if the administration of the COVID-19 vaccine is associated with its manufacturer. I will examine whether or not certain manufacturers had a greater number of administered doses. --> already ran EDA to determine whether or not certain manufacturers had greater numbers of administered doses, now I will try models to determine if COVID-19 vaccine administration is associated with its manufacturer
+
+2. I will also assess whether or not the administration of the COVID-19 vaccine is associated with the administration of the flu vaccine by looking at the number of doses of the vaccines administered in the same year. --> completed in previous "project-analysis.qmd" file (time series and granger causality)
+
+
+# Setup
+
+Loading in any packages that may be needed.
+
+```{r}
+library(readxl) #for loading Excel files
+library(dplyr) #for data processing/cleaning
+library(tidyr) #for data processing/cleaning
+library(skimr) #for nice visualization of data 
+library(here) #to set paths
+library(ggplot2) # for graphs
+library(kableExtra) # for tables
+library(readr) # for reading in csv files
+library(purrr)
+library(lubridate) # for dealing with dates
+library(tibble)
+library(yardstick)
+library(rsample)
+library(tidymodels)
+library(caret)
+library(ranger)
+library(gt)
+```
+
+First, I will load in my datasets. 
+
+```{r, load data}
+# Covid vaccine datasets
+covid_vaccine_2021 <- readRDS(here("data", "processed-data", "covid-vaccine-2021.rds"))
+covid_vaccine_2022 <- readRDS(here("data", "processed-data", "covid-vaccine-2022.rds"))
+covid_vaccine_2023 <- readRDS(here("data", "processed-data", "covid-vaccine-2023.rds"))
+
+# Influenza vaccine datasets
+flu_vaccine_2021 <- readRDS(here("data", "processed-data", "flu-vaccine-2021.rds"))
+flu_vaccine_2022 <- readRDS(here("data", "processed-data", "flu-vaccine-2022.rds"))
+flu_vaccine_2023 <- readRDS(here("data", "processed-data", "flu-vaccine-2023.rds"))
+```
+
+Now, I will combine all the COVID-19 vaccine datasets into one data set and the flu vaccine datasets into another dataset. 
+
+```{r}
+# Covid-19 Vaccine Combined
+covid_vaccine_combined <- bind_rows(
+  covid_vaccine_2021 %>% mutate(Year = 2021),
+  covid_vaccine_2022 %>% mutate(Year = 2022),
+  covid_vaccine_2023 %>% mutate(Year = 2023)
+) %>%
+  arrange(Date)  # Ensure chronological order
+
+# Flu Vaccine Combined
+flu_vaccine_combined <- bind_rows(
+  flu_vaccine_2021 %>% mutate(Year = 2021),
+  flu_vaccine_2022 %>% mutate(Year = 2022),
+  flu_vaccine_2023 %>% mutate(Year = 2023)
+) %>%
+  arrange(Start_Date)  # Ensure chronological order
+```
+
+I will now split the data into training and testing sets. I will split the data into a 75% train (3/4) and 25% test set (1/4). I cannot split the data randomly since it is based on time-series. 
+
+```{r}
+# set seed for reproducibility
+set.seed(123)
+
+# COVID-19 VAX DATA
+split_index_covid <- floor(0.75 * nrow(covid_vaccine_combined))  # 75% cutoff
+
+covid_train <- covid_vaccine_combined[1:split_index_covid, ]  # Training set (older data)
+covid_test <- covid_vaccine_combined[(split_index_covid + 1):nrow(covid_vaccine_combined), ]  # Test set (newer data)
+
+# FLU VAX DATA
+split_index_flu <- floor(0.75 * nrow(flu_vaccine_combined))  # 75% cutoff
+
+flu_train <- flu_vaccine_combined[1:split_index_flu, ]  # Training set (older data)
+flu_test <- flu_vaccine_combined[(split_index_flu + 1):nrow(flu_vaccine_combined), ]  # Test set (newer data)
+
+## ENSURING SPLIT OCCURRED CORRECTLY
+# Ensure the Date column is in Date format if not already
+covid_vaccine_combined$Date <- as.Date(covid_vaccine_combined$Date)
+
+# Add a column to indicate whether the row is part of the training or test set
+covid_vaccine_combined$set <- ifelse(covid_vaccine_combined$Date <= covid_vaccine_combined$Date[split_index_covid], "Train", "Test")
+
+# Plot the distribution of dates for both train and test sets
+ggplot(covid_vaccine_combined, aes(x = Date, color = set)) +
+  geom_histogram(data = covid_vaccine_combined, aes(x = Date, fill = set), bins = 50, position = "identity", alpha = 0.5) +
+  labs(title = "Visualization of Train-Test Split",
+       x = "Date",
+       y = "Count of Data Points") +
+  theme_minimal() +
+  scale_color_manual(values = c("Train" = "blue", "Test" = "red")) +
+  scale_fill_manual(values = c("Train" = "blue", "Test" = "red"))
+
+```
+It looks like the data was split correctly, with roughly 75% of the data in the training set and 25% in the testing set.
+
+# Linear Regression Model with Train Data for COVID-19 Vaccine
+
+I will now do a linear reg model predicting the number of covid-19 vaccines administered with Date and manufacturer as predictors (Administered_Janssen, Administered_Moderna, Administered_Pfizer, Administered_Novavax). I will use the train data created above. 
+
+```{r}
+# convert Date to numeric for regression
+covid_train$Date_numeric <- as.numeric(covid_train$Date)
+covid_test$Date_numeric <- as.numeric(covid_test$Date)
+
+# fit the linear reg model to the train data
+covid_lm <- lm(Administered ~ Administered_Janssen + Administered_Moderna + Administered_Pfizer + Administered_Novavax + Administered_Unk_Manuf, data = covid_train)
+
+# summary of linear reg model
+summary(covid_lm)
+
+# predict on test data
+covid_predictions <- predict(covid_lm, newdata = covid_test)
+
+# create tibble for RMSE calculation
+covid_results_lr <- tibble(
+  truth = covid_test$Cumulative_Administered,
+  estimate = covid_predictions
+)
+
+# RMSE
+rmse(covid_results_lr, truth, estimate)
+
+# Plot observed vs predicted values
+ggplot(covid_results_lr, aes(x = truth, y = estimate)) +
+  geom_point(alpha = 0.6, color = "lightgreen") +
+  geom_abline(slope = 1, intercept = 0, color = "gray") +
+  labs(title = "Linear Regression: Observed vs Predicted COVID-19 \n Vaccine Administration", 
+      x = "Observed Administered", 
+      y = "Predicted Administered") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16)
+  ) 
+
+ggsave("plots/linear_regression_plot.png", plot = last_plot(), width = 6, height = 4, dpi = 300)
+```
+The RMSE appears to be VERY high (143707237506), indicating that this model did not work well. However, the R-squared is one. For some reason I cannot get the graph to show the diagonal line - there appears to be lots of clustering.
+
+Since the RMSE was VERY high, I will now try to use cross-validation to see if the model can be improved. 
+
+```{r}
+# Set up cross-validation
+cv_model <- train(Administered ~ Administered_Janssen + Administered_Moderna + Administered_Pfizer + Administered_Novavax + Administered_Unk_Manuf, 
+                  data = covid_train, 
+                  method = "lm", 
+                  trControl = trainControl(method = "cv", number = 10))
+
+# View RMSE from cross-validation
+print(cv_model)
+
+# Check for missing values in covid_test
+sum(is.na(covid_test)) 
+
+# Remove rows with missing values in covid_test
+covid_test_clean <- covid_test %>% drop_na() # 382 NAs --> drop the NAs
+
+# Make predictions on the cleaned test data
+predictions <- predict(cv_model, newdata = covid_test_clean)
+
+# Ensure the number of rows match
+if (nrow(covid_test_clean) == length(predictions)) {
+  covid_test_clean$predicted <- predictions
+} else {
+  stop("Mismatch in the number of rows between test data and predictions.")
+}
+
+# Create a tibble for observed and predicted values
+covid_results_cv <- tibble(
+  truth = covid_test_clean$Administered,
+  estimate = covid_test_clean$predicted
+)
+
+# Plot observed vs predicted values
+ggplot(covid_results_cv, aes(x = truth, y = estimate)) +
+  geom_point(alpha = 0.6, color = "lightpink") +
+  geom_abline(slope = 1, intercept = 0, color = "gray") +
+  labs(title = "Cross-Validated Linear Regression: Observed vs Predicted \n COVID-19 Vaccine Administration",
+       x = "Observed Administered",
+       y = "Predicted Administered") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16)
+  )
+
+ggsave("plots/cv_linear_regression_plot.png", plot = last_plot(), width = 6, height = 4, dpi = 300)
+```
+The RMSE is now VERY low (1.915258e-07). This jump from such a high to such a low RMSE is surprising. The R-squared is 1. I believe that overfitting is occurring here. Additionally, we see that the predictions are VERY close to the observed values, which is not realistic (they are practically on the diagonal line). There appears to be clustering of around the upper and lower regions of the diagonal line. 
+
+I will try using LASSO to reduce the issue of overfitting. 
+
+```{r}
+# Try using Lasso Regression (L1 regularization)
+cv_model_lasso <- train(Administered ~ Administered_Janssen + Administered_Moderna + Administered_Pfizer + Administered_Novavax + Administered_Unk_Manuf, 
+                        data = covid_train, 
+                        method = "glmnet", 
+                        trControl = trainControl(method = "cv", number = 10))
+
+# View RMSE from cross-validation
+print(cv_model_lasso)
+
+# Check for missing values in covid_test
+sum(is.na(covid_test)) 
+
+# Remove rows with missing values in covid_test
+covid_test_clean <- covid_test %>% drop_na() # because we have 382 NAs
+
+# Make predictions on the cleaned test data
+predictions <- predict(cv_model_lasso, newdata = covid_test_clean)
+
+# Ensure the number of rows match
+if (nrow(covid_test_clean) == length(predictions)) {
+  covid_test_clean$predicted <- predictions
+} else {
+  stop("Mismatch in the number of rows between test data and predictions.")
+}
+
+# Create a tibble for observed and predicted values
+covid_results_lasso <- tibble(
+  truth = covid_test_clean$Administered,
+  estimate = covid_test_clean$predicted
+)
+
+# Plot observed vs predicted values
+ggplot(covid_results_lasso, aes(x = truth, y = estimate)) +
+  geom_point(alpha = 0.6, color = "#ffc34d") +
+  geom_abline(slope = 1, intercept = 0, color = "gray") +
+  labs(title = "LASSO Regression: Observed vs Predicted COVID-19 \n Vaccine Administration",
+       x = "Observed Administered",
+       y = "Predicted Administered") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16)
+  )
+
+ggsave("plots/lasso_regression_plot.png", plot = last_plot(), width = 6, height = 4, dpi = 300)
+```
+The lowest RMSE value was 1314505, indicating the average magnitude of the prediction errors. The highest R-squared value was 0.9999938, indicating that the model explains almost all the variance in the dependent variable. The LASSO regression model with alpha = 1 and lambda = 901614.2 provided the best performance, with very high R-squared values and relatively low RMSE and MAE values. The model is highly accurate in predicting the number of COVID-19 vaccines administered based on the manufacturer variables. There appears to be clustering of around the upper and lower regions of the diagonal line. 
+
+Now, I will try using random forest modeling. 
+
+```{r}
+# Define the RF model (set seed in engine for reproducibility)
+rf_model <- rand_forest() %>%
+  set_engine("ranger", seed = 1234) %>%
+  set_mode("regression")
+
+# Define the recipe (preprocessing steps)
+rf_recipe <- recipe(Administered ~ Administered_Janssen + Administered_Moderna + 
+                                Administered_Pfizer + Administered_Novavax + 
+                                Administered_Unk_Manuf + Year, 
+                    data = covid_train)
+
+# Create a workflow (model + recipe)
+rf_workflow <- workflow() %>%
+  add_model(rf_model) %>%
+  add_recipe(rf_recipe)
+
+# Fit the model on the training data
+rf_fit <- rf_workflow %>%
+  fit(data = covid_train)
+
+# Predict on the test dataset
+rf_predictions <- predict(rf_fit, covid_test) %>%
+  bind_cols(covid_test)
+
+# Calculate RMSE
+rf_rmse <- rf_predictions %>%
+  rmse(truth = Administered, estimate = .pred)
+
+rf_rmse
+
+# Calculate R-squared
+rf_r_squared <- rf_predictions %>%
+  rsq(truth = Administered, estimate = .pred)
+
+rf_r_squared
+
+# Plot observed vs predicted values
+ggplot(rf_predictions, aes(x = Administered, y = .pred)) +
+  geom_point(alpha = 0.6, color = "skyblue") +
+  geom_abline(slope = 1, intercept = 0, color = "gray") +
+  labs(title = "Random Forest: Observed vs Predicted COVID-19 \n Vaccine Administration", 
+      x = "Observed Administered", 
+      y = "Predicted Administered") +
+  theme_minimal() + 
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 16)
+  )
+
+ggsave("plots/random_forest_plot.png", plot = last_plot(), width = 6, height = 4, dpi = 300)
+```
+The RMSE is 8550305, which is very high and indicates that there may be errors. The R-squared is 0.9919158. It appears as though the LASSO model and the linear regression with cross-validation performed better than the random forest. There appears to be clustering of around the upper and lower regions of the diagonal line. 
+
+# Make Table with Graphs Above as well as their RMSEs 
+
+I will create a figure that displays all four scatterplots for comparison. 
+
+```{r}
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(gridExtra)
+
+# Create a list of plots
+graph_list <- list(
+  ggplot(covid_results_lr, aes(x = truth, y = estimate)) +
+    geom_point(alpha = 0.6, color = "lightgreen") +
+    geom_abline(slope = 1, intercept = 0, color = "gray") +
+    labs(title = "Linear Regression") +
+    theme_minimal(),
+  
+  ggplot(covid_results_cv, aes(x = truth, y = estimate)) +
+    geom_point(alpha = 0.6, color = "lightpink") +
+    geom_abline(slope = 1, intercept = 0, color = "gray") +
+    labs(title = "Cross-Validated Linear Regression") +
+    theme_minimal(),
+  
+  ggplot(covid_results_lasso, aes(x = truth, y = estimate)) +
+    geom_point(alpha = 0.6, color = "#ffc34d") +
+    geom_abline(slope = 1, intercept = 0, color = "gray") +
+    labs(title = "LASSO Regression") +
+    theme_minimal(),
+  
+  ggplot(rf_predictions, aes(x = Administered, y = .pred)) +
+    geom_point(alpha = 0.6, color = "skyblue") +
+    geom_abline(slope = 1, intercept = 0, color = "gray") +
+    labs(title = "Random Forest") +
+    theme_minimal()
+)
+
+# Combine the plots into one grid
+combined_plot <- grid.arrange(grobs = graph_list, ncol = 2)
+
+```
+For some reason, the Linear Regression scatterplot looks different than before here (I have tried reloading and re-running the code several times). 
+
+Now, I will create a table with the graphs above as well as their RMSEs so that a quick summary can be obtained about the models that were done and how well each one worked. 
+
+```{r}
+# Create a dataframe with model names and metrics
+model_comparison <- data.frame(
+  Model = c("Linear Regression", "Cross-Validated Linear Regression", "LASSO Regression", "Random Forest"),
+  RMSE = c(143707237506, 1.915258e-07, 1314505, 8550305),
+  R_Squared = c(1, 1, 0.9999938, 0.9919158) 
+)
+
+model_comparison
+
+model_comparison %>%
+  gt() %>%
+  tab_header(
+    title = "Model Comparison"
+  ) %>%
+  cols_label(
+    Model = "Model Name",
+    RMSE = "Root Mean Squared Error",
+    R_Squared = "R-Squared"
+  ) %>%
+  tab_spanner(
+    label = "Metrics",
+    columns = vars(RMSE, R_Squared)
+  ) %>%
+  fmt_number(
+    columns = vars(RMSE),
+    decimals = 2
+  ) %>%
+  fmt_number(
+    columns = vars(R_Squared),
+    decimals = 5
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(weight = "bold")
+    ),
+    locations = cells_column_labels()
+  )
+
+```
+
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
