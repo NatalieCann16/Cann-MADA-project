@@ -1,0 +1,883 @@
+---
+title: "Exploratory Data Analysis"
+author: "Natalie Cann"
+date: "2025-04-18"
+output: html_document
+---
+
+# Setup
+
+I will load any packages that may be useful for exploratory data analysis. 
+
+```{r, load packages}
+library(dplyr) #for data processing/cleaning
+library(tidyr) #for data processing/cleaning
+library(skimr) #for nice visualization of data 
+library(here) #to set paths
+library(ggplot2) # for graphs
+library(kableExtra) # for tables
+library(naniar) # for missingness visualization (gg_miss_var)
+library(readr) # for reading in csv files
+library(purrr)
+library(lubridate) # for dealing with dates
+library(corrplot) # correlations
+library(gt) # for tables
+library(readr)
+library(corrplot)
+library(stringr) # for string manipulation
+```
+
+
+# Load data
+
+```{r}
+data <- read_rds(here("data", "processed-data", "covid-vaccine.rds"))
+```
+
+# Summary Function 
+```{r}
+summary(data)
+colnames(data)
+```
+
+```{r}
+library(dplyr)
+library(gt)
+library(tibble)
+
+# Convert summary to a data frame
+summary_df <- summary(data) %>%
+  as.data.frame() %>%
+  rownames_to_column(var = "Variable")
+
+# If your summary is one-columned (which it usually is), rename that column
+colnames(summary_df)[2] <- "Summary"
+
+# Create a gt table
+summary_gt <- summary_df %>%
+  gt() %>%
+  tab_header(
+    title = md("**Table: Summary Statistics of Dataset**"),
+    subtitle = "Descriptive summary for all variables"
+  ) %>%
+  tab_style(
+    style = cell_text(font = "Times New Roman"),
+    locations = cells_body(columns = everything())
+  ) %>%
+  tab_style(
+    style = cell_text(font = "Times New Roman", weight = "bold"),
+    locations = cells_title()
+  ) %>%
+  tab_style(
+    style = cell_text(font = "Times New Roman"),
+    locations = cells_column_labels(columns = everything())
+  )
+
+# Show the table
+summary_gt
+
+# save for supplementary
+gtsave(
+  summary_gt,
+  filename = here("results", "tables", "summary_statistics.png"),
+  expand = 10,             # Expands margins
+  vwidth = 1600,           # Virtual width (pixels)
+  vheight = 1000           # Virtual height (pixels)
+)
+```
+
+# Correlation Matrix
+
+```{r}
+# Select only numeric columns
+numeric_data <- data %>%
+  select(where(is.numeric))
+
+# Run correlation matrix
+cor_matrix <- cor(numeric_data, use = "complete.obs")
+
+# View it
+cor_matrix
+```
+
+```{r}
+# Save as PNG
+png(filename = here("results", "figures", "overall_corrplot.png"), 
+    width = 1700, height = 1200, res = 150)
+
+corrplot(cor_matrix,
+         method = "color",
+         type = "upper",
+         order = "hclust",
+         addCoef.col = "black",   # White numbers
+         number.cex = 0.4,        # Smaller number size
+         tl.col = "black",        # Axis label color
+         tl.cex = 0.8,             # Axis label size
+         title = "Correlation Plot: Distributed vs. Administered COVID-19 Vaccines")
+
+# Finish writing the file
+dev.off()
+
+
+overall_corrplot <- corrplot(cor_matrix,
+         method = "color",
+         type = "upper",
+         order = "hclust",
+         addCoef.col = "black",   # White numbers
+         number.cex = 0.4,        # Smaller number size
+         tl.col = "black",        # Axis label color
+         tl.cex = 0.8,             # Axis label size
+         title = "Correlation Plot: Distributed vs. Administered COVID-19 Vaccines")
+
+overall_corrplot
+
+```
+
+I will now make a correlation plot comparing the distributed and administered variables. 
+```{r}
+# Save as PNG
+png(filename = here("results", "figures", "corrplot_dist_admin.png"), 
+    width = 1700, height = 1200, res = 150)
+
+# Filter to relevant columns
+dist_admin_data <- data %>%
+  select(total_distributed, total_dist_janssen, total_dist_moderna, total_dist_pfizer, total_dist_novavax, total_dist_unk,total_administered, total_admin_janssen, total_admin_moderna, total_admin_pfizer, total_admin_novavax, total_admin_unk)
+
+# Create correlation matrix for just those variables
+cor_matrix_dist_admin <- cor(dist_admin_data, use = "complete.obs")
+
+# Create the correlation plot
+corrplot_dist_admin <- corrplot(cor_matrix_dist_admin, 
+         method = "color",       # Use color to represent correlation strength
+         type = "upper",         # Show upper triangle only
+         addCoef.col = "black",  # Text for correlation values
+         number.cex = 0.5,       # Smaller text size for numbers
+         tl.col = "black",       # Axis label color
+         tl.cex = 0.8,           # Axis label size
+         title = "Correlation Plot: Distributed vs. Administered COVID-19 Vaccines")
+
+print(corrplot_dist_admin)
+
+# Finish writing the file
+dev.off()
+
+
+
+# Create the correlation plot
+corrplot_dist_admin <- corrplot(cor_matrix_dist_admin, 
+         method = "color",       # Use color to represent correlation strength
+         type = "upper",         # Show upper triangle only
+         addCoef.col = "black",  # Text for correlation values
+         number.cex = 0.5,       # Smaller text size for numbers
+         tl.col = "black",       # Axis label color
+         tl.cex = 0.8,           # Axis label size
+         title = "Correlation Plot: Distributed vs. Administered COVID-19 Vaccines")
+
+print(corrplot_dist_admin)
+
+```
+It looks like total_administered and total_distributed have a strong positive correlation: 0.99
+total_admin_janssen and total_dist_janssen: 0.99
+total_admin_moderna and total_dist_moderna: 0.99
+total_admin_pfizer and total_dist_pfizer: 0.99
+total_admin_novavax and total_dist_novavax: 0.86 --- lowest of all manufacturers
+total_admin_unk and total_dist_unk: 0.03
+
+*The total administered unknown and total distributed unknown is a poor correlation -- these variables likely exist due to poor data recording*
+
+Scatterplot visualizing strong relationship b/w vaccine admin and distribution: 
+```{r}
+# Scatter plot to visualize relationship between distributed and administered vaccines
+ggplot(data, aes(x = total_distributed, y = total_administered)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  ggtitle("Scatter plot: Distributed vs Administered Vaccines")
+
+# save
+ggsave(here("results", "figures", "scatterplot_dist_admin.png"),
+       width = 8, height = 6)
+```
+This shows a VERY strong relationship between the number of vaccines distributed and the number administered. This suggests that the distribution was well managed and that the vaccines were administered in a timely manner.
+
+Now, I will create these scatterplots to assess the correlation between the number of vaccines distributed and administered for each manufacturer. I will save the scatterplots.
+
+```{r}
+# Moderna
+ggplot(data, aes(x = total_dist_moderna, y = total_admin_moderna)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  ggtitle("Scatter plot: Distributed vs Administered Moderna Vaccines")
+
+ggsave(here("results", "figures", "scatterplot_dist_admin_moderna.png"),
+       width = 8, height = 6)
+
+# Janssen
+ggplot(data, aes(x = total_dist_janssen, y = total_admin_janssen)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  ggtitle("Scatter plot: Distributed vs Administered Janssen Vaccines")
+
+ggsave(here("results", "figures", "scatterplot_dist_admin_janssen.png"),
+       width = 8, height = 6)
+
+# Pfizer
+ggplot(data, aes(x = total_dist_pfizer, y = total_admin_pfizer)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  ggtitle("Scatter plot: Distributed vs Administered Pfizer Vaccines")
+
+ggsave(here("results", "figures", "scatterplot_dist_admin_pfizer.png"),
+       width = 8, height = 6)
+
+# Novavax
+ggplot(data, aes(x = total_dist_novavax, y = total_admin_novavax)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  ggtitle("Scatter plot: Distributed vs Administered Novavax Vaccines")
+
+ggsave(here("results", "figures", "scatterplot_dist_admin_novavax.png"),
+       width = 8, height = 6)
+
+```
+The points are most tightly clustered around the diagonal line for the Moderna and Janssen vaccines. 
+
+Now, I will create scatterplots to visually assess the correlations between the numbers of vaccines distributed and administered for each region. Then I will ave the scatterplots.
+
+```{r}
+# South
+
+south_data <- data %>% filter(Region == "South")
+
+ggplot(south_data, aes(x = total_distributed, y = total_administered)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  ggtitle("Scatter plot: Distributed vs Administered Vaccines in the South")
+
+ggsave(here("results", "figures", "scatterplot_dist_admin_south.png"),
+       width = 8, height = 6)
+
+# Northeast
+
+northeast_data <- data %>% filter(Region == "Northeast")
+
+ggplot(northeast_data, aes(x = total_distributed, y = total_administered)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  ggtitle("Scatter plot: Distributed vs Administered Vaccines in the Northeast")
+
+ggsave(here("results", "figures", "scatterplot_dist_admin_northeast.png"),
+       width = 8, height = 6)
+
+# Midwest
+
+midwest_data <- data %>% filter(Region == "Midwest")
+
+ggplot(midwest_data, aes(x = total_distributed, y = total_administered)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  ggtitle("Scatter plot: Distributed vs Administered Vaccines in the Midwest")
+
+ggsave(here("results", "figures", "scatterplot_dist_admin_midwest.png"),
+       width = 8, height = 6)
+
+# West
+
+west_data <- data %>% filter(Region == "West")
+
+ggplot(west_data, aes(x = total_distributed, y = total_administered)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  theme_minimal() +
+  ggtitle("Scatter plot: Distributed vs Administered Vaccines in the West")
+
+ggsave(here("results", "figures", "scatterplot_dist_admin_west.png"),
+       width = 8, height = 6)
+
+# Obtain summary table with all correlation coefficients
+correlations <- data %>%
+  group_by(Region) %>%
+  summarise(
+    cor = cor(total_distributed, total_administered, use = "complete.obs")
+  )
+
+correlations
+
+# Save the correlation summary table
+# Save the correlation summary table as an RDS file
+saveRDS(correlations, here::here("results", "tables", "correlation_by_region.rds"))
+```
+It appears as though all regions have a strong positive correlation between the number of vaccines distributed and administered.
+
+# Research Question One: Vaccine Administration and Distribution by Region 
+
+*could be table one*
+
+```{r}
+# Create a summary table of total distributed and administered vaccines by region
+dist_admin_yearregion <- data %>%
+  group_by(Year, Region) %>%
+  summarise(
+    total_distributed = sum(total_distributed, na.rm = TRUE),
+    total_dist_janssen = sum(total_dist_janssen, na.rm = TRUE),
+    total_dist_moderna = sum(total_dist_moderna, na.rm = TRUE),
+    total_dist_pfizer = sum(total_dist_pfizer, na.rm = TRUE),
+    total_dist_novavax = sum(total_dist_novavax, na.rm = TRUE),
+    total_dist_unk = sum(total_dist_unk, na.rm = TRUE),
+    total_administered = sum(total_administered, na.rm = TRUE), 
+    total_admin_janssen = sum(total_admin_janssen, na.rm = TRUE),
+    total_admin_moderna = sum(total_admin_moderna, na.rm = TRUE),
+    total_admin_pfizer = sum(total_admin_pfizer, na.rm = TRUE),
+    total_admin_novavax = sum(total_admin_novavax, na.rm = TRUE),
+    total_admin_unk = sum(total_admin_unk, na.rm = TRUE))
+
+dist_admin_yearregion
+```
+Now I will make this a table to include in my manuscript. 
+
+```{r}
+library(gt)
+
+dist_admin_yearregion %>%
+  gt() %>%
+  tab_header(
+    title = md("**Vaccine Administration and Distribution by Region**"),  # Bold the title
+    subtitle = "Summary of vaccine distribution and administration by year and region"
+  ) %>%
+  cols_label(
+    Year = "Year",
+    Region = "Region",
+    total_distributed = "Total Distributed",
+    total_dist_janssen = "Janssen Distributed",
+    total_dist_moderna = "Moderna Distributed",
+    total_dist_pfizer = "Pfizer Distributed",
+    total_dist_novavax = "Novavax Distributed",
+    total_dist_unk = "Unknown Manufacturer Distributed",
+    total_administered = "Total Administered",
+    total_admin_janssen = "Janssen Administered",
+    total_admin_moderna = "Moderna Administered",
+    total_admin_pfizer = "Pfizer Administered",
+    total_admin_novavax = "Novavax Administered",
+    total_admin_unk = "Unknown Manufacturer Administered"
+  ) %>%
+  tab_spanner(
+    label = "Distribution",
+    columns = c(total_dist_janssen, total_dist_moderna, total_dist_pfizer, total_dist_novavax, total_dist_unk)
+  ) %>%
+  tab_spanner(
+    label = "Administration",
+    columns = c(total_admin_janssen, total_admin_moderna, total_admin_pfizer, total_admin_novavax, total_admin_unk)
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(weight = "bold")
+    ),
+    locations = cells_column_labels(columns = everything())
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(size = "smaller", font = "Times New Roman")  # Set font to Times New Roman
+    ),
+    locations = cells_body(columns = everything())
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(weight = "bold", font = "Times New Roman")  # Set bold font for the title
+    ),
+    locations = cells_title()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(font = "Times New Roman")  # Set Times New Roman for column labels
+    ),
+    locations = cells_column_labels(columns = everything())
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(font = "Times New Roman")  # Set Times New Roman for spanner labels
+    ),
+    locations = cells_column_spanners(spanners = c("Distribution", "Administration"))
+  )
+```
+
+These numbers are really large - I will make a table that shows them by millions to make it more digestable for readers. 
+```{r}
+library(gt)
+library(scales)
+
+# Function to format numbers in millions
+format_millions <- function(x) {
+  scales::number(x / 1e6, accuracy = 0.1, suffix = "M")
+}
+
+# Create the gt table
+gt_table <- dist_admin_yearregion %>%
+  gt() %>%
+  tab_header(
+    title = md("**Table One: COVID-19 Vaccine Administration and Distribution by Region**"),  # Bold the title
+    subtitle = "Summary of vaccine distribution and administration by year and region"
+  ) %>%
+  cols_label(
+    Year = "Year",
+    Region = "Region",
+    total_distributed = "Total Distributed",
+    total_dist_janssen = "Janssen Distributed",
+    total_dist_moderna = "Moderna Distributed",
+    total_dist_pfizer = "Pfizer Distributed",
+    total_dist_novavax = "Novavax Distributed",
+    total_dist_unk = "Unknown Manufacturer Distributed",
+    total_administered = "Total Administered",
+    total_admin_janssen = "Janssen Administered",
+    total_admin_moderna = "Moderna Administered",
+    total_admin_pfizer = "Pfizer Administered",
+    total_admin_novavax = "Novavax Administered",
+    total_admin_unk = "Unknown Manufacturer Administered"
+  ) %>%
+  tab_spanner(
+    label = "Distribution",
+    columns = c(total_dist_janssen, total_dist_moderna, total_dist_pfizer, total_dist_novavax, total_dist_unk)
+  ) %>%
+  tab_spanner(
+    label = "Administration",
+    columns = c(total_admin_janssen, total_admin_moderna, total_admin_pfizer, total_admin_novavax, total_admin_unk)
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(weight = "bold")
+    ),
+    locations = cells_column_labels(columns = everything())
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(size = "smaller", font = "Times New Roman")  # Set font to Times New Roman
+    ),
+    locations = cells_body(columns = everything())
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(weight = "bold", font = "Times New Roman")  # Set bold font for the title
+    ),
+    locations = cells_title()
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(font = "Times New Roman")  # Set Times New Roman for column labels
+    ),
+    locations = cells_column_labels(columns = everything())
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(font = "Times New Roman")  # Set Times New Roman for spanner labels
+    ),
+    locations = cells_column_spanners(spanners = c("Distribution", "Administration"))
+  ) %>%
+  fmt(
+    columns = c(total_distributed, total_dist_janssen, total_dist_moderna, total_dist_pfizer, total_dist_novavax, total_dist_unk,
+                total_administered, total_admin_janssen, total_admin_moderna, total_admin_pfizer, total_admin_novavax, total_admin_unk),
+    fns = format_millions
+  ) %>%
+  tab_style(
+    style = list(
+      cell_fill(color = "#faef97")  # Set yellow background for Total Distributed and Total Administered columns
+    ),
+    locations = cells_body(columns = c(total_distributed, total_administered))
+  ) %>%
+  tab_source_note(
+    source_note = "Counts in the table above are in Millions"
+  )
+
+# Display the gt table
+print(gt_table)
+
+# Save the gt table with increased dimensions
+gtsave(
+  gt_table,
+  filename = here("results", "tables", "dist_admin_yearregion.png"),
+  expand = 10,             # Expands margins
+  vwidth = 1600,           # Virtual width (pixels)
+  vheight = 1000           # Virtual height (pixels)
+)
+
+
+```
+
+
+Looking at Regional Differences in Vaccine Distribution and Administration Boxplots: 
+
+*want to include in manuscript*
+```{r}
+# Pivot to long format for combined plotting
+data_long <- data %>%
+  select(Region, total_distributed, total_administered) %>%
+  pivot_longer(
+    cols = c(total_distributed, total_administered),
+    names_to = "Type",
+    values_to = "Doses"
+  ) %>%
+  mutate(
+    Type = recode(Type,
+                  total_distributed = "Distributed",
+                  total_administered = "Administered")
+  )
+
+# create the combined boxplot!!
+combined_plot <- ggplot(data_long, aes(x = Region, y = Doses, fill = Type)) +
+  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = c("Distributed" = "lightblue", "Administered" = "lightgreen")) +
+  theme_minimal() +
+  ggtitle("Figure One: COVID-19 Vaccine Distribution and \n Administration by Region (2021–2023)") +
+  xlab("Region in the U.S.") +
+  ylab("Total Doses") +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, family = "Times New Roman"),
+    axis.title.x = element_text(face = "bold", family = "Times New Roman"),
+    axis.title.y = element_text(face = "bold", family = "Times New Roman"),
+    axis.text = element_text(family = "Times New Roman"),
+    legend.title = element_blank(),
+    legend.text = element_text(family = "Times New Roman")
+  )
+
+combined_plot
+
+# save
+ggsave(here("results", "figures", "vaccine_distribution_and_administration_by_region.png"),
+       plot = combined_plot, width = 9, height = 6)
+
+```
+It looks like the south had both the highest average distribution and administration of vaccines across 2021-2023.
+
+Boxplots for manufacturer distribution and administration across 2021-2023: 
+
+```{r}
+# Pivot distribution data
+dist_long <- data %>%
+  pivot_longer(cols = starts_with("total_dist_"),
+               names_to = "Manufacturer",
+               values_to = "Doses_Distributed") %>%
+  mutate(
+    Manufacturer = str_replace(Manufacturer, "total_dist_", ""),
+    Type = "Distributed"
+  )
+
+# Pivot administration data
+admin_long <- data %>%
+  pivot_longer(cols = starts_with("total_admin_"),
+               names_to = "Manufacturer",
+               values_to = "Doses_Administered") %>%
+  mutate(
+    Manufacturer = str_replace(Manufacturer, "total_admin_", ""),
+    Type = "Administered"
+  )
+
+# Join both long datasets into one
+combined <- dist_long %>%
+  select(Region, Manufacturer, Doses = Doses_Distributed, Type) %>%
+  bind_rows(
+    admin_long %>%
+      select(Region, Manufacturer, Doses = Doses_Administered, Type)
+  )
+
+# Create the combined boxplot with side-by-side boxplots for each manufacturer
+combined_plot_manuf <- ggplot(combined, aes(x = Manufacturer, y = Doses, fill = Type)) +
+  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8)) +
+  theme_minimal() +
+  ggtitle("Figure Two: COVID-19 Vaccine Distribution and \n Administration by Manufacturer (2021-2023)") +
+  xlab("Manufacturer") +
+  ylab("Number of Doses") +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, family = "Times New Roman"),
+    axis.title = element_text(face = "bold", family = "Times New Roman"),
+    axis.text = element_text(family = "Times New Roman"),
+    strip.text = element_text(face = "bold", family = "Times New Roman")
+  ) +
+  scale_fill_manual(values = c("Distributed" = "skyblue", "Administered" = "lightgreen"))
+
+combined_plot_manuf
+
+# save
+ggsave(here("results", "figures", "vaccine_distribution_and_administration_by_manuf.png"),
+       plot = combined_plot_manuf, width = 9, height = 6)
+```
+
+# Research Question Two: Vaccine Administration and Distribution by Region Through Time
+
+```{r}
+# Summarize the data by year and region
+data_summary <- data %>%
+  group_by(Year, Region) %>%
+  summarize(
+    total_distributed = sum(total_distributed, na.rm = TRUE),
+    total_administered = sum(total_administered, na.rm = TRUE),
+    .groups = 'drop'  # Override the grouping
+  )
+
+# Define custom colors for each region
+custom_colors <- c(
+  "South" = "lightblue",       # Blue
+  "Northeast" = "#faef97",     # Yellow
+  "Midwest" = "lightgreen",   # Green
+  "West" = "#f5c6d9"           # Pink
+)
+
+# Plot for Vaccine Distribution over Time
+plot_distribution <- ggplot(data_summary, aes(x = Year, y = total_distributed, color = Region)) +
+  geom_line(linewidth = 1) +  # Use linewidth instead of size
+  geom_point(size = 2) +
+  theme_minimal() +
+  ggtitle("Figure Three: COVID-19 Vaccine Distribution \n by Region Over Time (2021-2023)") +
+  xlab("Year") +
+  ylab("Total Doses Distributed (Millions)") +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, family = "Times New Roman"),
+    axis.title.x = element_text(face = "bold", family = "Times New Roman"),
+    axis.title.y = element_text(face = "bold", family = "Times New Roman"),
+    axis.text = element_text(family = "Times New Roman"),
+    legend.title = element_text(face = "bold", family = "Times New Roman"),
+    legend.text = element_text(family = "Times New Roman")
+  ) +
+  scale_color_manual(values = custom_colors) +
+  scale_y_continuous(labels = scales::number_format(scale = 1e-6, suffix = "M"))
+plot_distribution
+
+# Plot for Vaccine Administration over Time
+plot_administration <- ggplot(data_summary, aes(x = Year, y = total_administered, color = Region)) +
+  geom_line(linewidth = 1) +  # Use linewidth instead of size
+  geom_point(size = 2) +
+  theme_minimal() +
+  ggtitle("Figure Four: COVID-19 Vaccine Administration \n by Region Over Time (2021-2023)") +
+  xlab("Year") +
+  ylab("Total Doses Administered (Millions)") +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, family = "Times New Roman"),
+    axis.title.x = element_text(face = "bold", family = "Times New Roman"),
+    axis.title.y = element_text(face = "bold", family = "Times New Roman"),
+    axis.text = element_text(family = "Times New Roman"),
+    legend.title = element_text(face = "bold", family = "Times New Roman"),
+    legend.text = element_text(family = "Times New Roman")
+  ) +
+  scale_color_manual(values = custom_colors) +
+  scale_y_continuous(labels = scales::number_format(scale = 1e-6, suffix = "M"))
+plot_administration
+
+# Save the graphs
+ggsave(here("results", "figures", "vaccine_distribution_by_region_time.png"), plot = plot_distribution, width = 8, height = 6)
+ggsave(here("results", "figures", "vaccine_administration_by_region_time.png"), plot = plot_administration, width = 8, height = 6)
+
+library(patchwork)
+
+# Combine the two plots side by side
+combined_plot_regionq2 <- plot_distribution + plot_administration + 
+  plot_layout(ncol = 2)
+
+combined_plot_regionq2
+
+# Save the combined plot
+ggsave(here("results", "figures", "vaccine_distribution_and_administration_by_region_time.png"), 
+       plot = combined_plot_regionq2, width = 16, height = 6)
+
+```
+Looks like the rate at which covid-19 vaccines are being distributed and administered dropped. This could be due to the fact that there was much more fear of COVID-19 earlier on in the pandemic as opposed to later. 
+
+Now, I will do this to assess how the distribution and administration of manufacturer specific vaccines changed over time. 
+
+```{r}
+# Aggregate distributed doses by manufacturer and year
+manufacturer_yearly_dist <- data %>%
+  select(Year,
+         total_dist_janssen, total_dist_moderna, total_dist_pfizer, total_dist_novavax) %>%
+  group_by(Year) %>%
+  summarise(
+    Janssen = sum(total_dist_janssen, na.rm = TRUE),
+    Moderna = sum(total_dist_moderna, na.rm = TRUE),
+    Pfizer = sum(total_dist_pfizer, na.rm = TRUE),
+    Novavax = sum(total_dist_novavax, na.rm = TRUE)
+  ) %>%
+  pivot_longer(
+    cols = -Year,
+    names_to = "Manufacturer",
+    values_to = "Doses"
+  )
+
+# Define the custom colors for those levels
+custom_colors_manu <- c(
+  "Janssen" = "#a6cee3",
+  "Moderna" = "#b2df8a",
+  "Pfizer" = "#fb9a99",
+  "Novavax" = "#cab2d6"
+)
+
+# Plot
+manufacturer_yearly_plot_dist <- ggplot(manufacturer_yearly_dist, aes(x = Year, y = Doses, color = Manufacturer)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_y_continuous(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
+  scale_color_manual(values = custom_colors_manu) +
+  theme_minimal() +
+  ggtitle("Figure Five: COVID-19 Vaccine Distribution by Primary \n Manufacturers Over Time (2021–2023)") +
+  xlab("Year") +
+  ylab("Total Doses Distributed (Millions)") +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, family = "Times New Roman"),
+    axis.title.x = element_text(face = "bold", family = "Times New Roman"),
+    axis.title.y = element_text(face = "bold", family = "Times New Roman"),
+    axis.text = element_text(family = "Times New Roman"),
+    legend.title = element_blank(),
+    legend.text = element_text(family = "Times New Roman")
+  )
+
+manufacturer_yearly_plot_dist
+
+# Save plot
+ggsave(here("results", "figures", "vaccine_distribution_by_manufacturer_over_time.png"),
+       plot = manufacturer_yearly_plot_dist, width = 10, height = 6)
+
+
+
+# Aggregate ADMINISTERED doses by manufacturer and year
+manufacturer_yearly_admin <- data %>%
+  select(Year,
+         total_admin_janssen, total_admin_moderna, total_admin_pfizer, total_admin_novavax) %>%
+  group_by(Year) %>%
+  summarise(
+    Janssen = sum(total_admin_janssen, na.rm = TRUE),
+    Moderna = sum(total_admin_moderna, na.rm = TRUE),
+    Pfizer = sum(total_admin_pfizer, na.rm = TRUE),
+    Novavax = sum(total_admin_novavax, na.rm = TRUE)
+  ) %>%
+  pivot_longer(
+    cols = -Year,
+    names_to = "Manufacturer",
+    values_to = "Doses"
+  )
+
+# Define the custom colors for those levels
+custom_colors_manu <- c(
+  "Janssen" = "#a6cee3",
+  "Moderna" = "#b2df8a",
+  "Pfizer" = "#fb9a99",
+  "Novavax" = "#cab2d6"
+)
+
+# Plot
+manufacturer_yearly_plot_admin <- ggplot(manufacturer_yearly_admin, aes(x = Year, y = Doses, color = Manufacturer)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_y_continuous(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
+  scale_color_manual(values = custom_colors_manu) +
+  theme_minimal() +
+  ggtitle("Figure Six: COVID-19 Vaccine Administration by Primary \n Manufacturers Over Time (2021–2023)") +
+  xlab("Year") +
+  ylab("Total Doses Administered (Millions)") +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, family = "Times New Roman"),
+    axis.title.x = element_text(face = "bold", family = "Times New Roman"),
+    axis.title.y = element_text(face = "bold", family = "Times New Roman"),
+    axis.text = element_text(family = "Times New Roman"),
+    legend.title = element_blank(),
+    legend.text = element_text(family = "Times New Roman")
+  )
+
+manufacturer_yearly_plot_admin
+
+# Save plot
+ggsave(here("results", "figures", "vaccine_administration_by_manufacturer_over_time.png"),
+       plot = manufacturer_yearly_plot_admin, width = 10, height = 6)
+
+# Combine the two plots side by side w/ patchwork
+combined_plot_manufq2 <- manufacturer_yearly_plot_dist + manufacturer_yearly_plot_admin + 
+  plot_layout(ncol = 2)
+
+combined_plot_manufq2
+
+# Save the combined plot
+ggsave(here("results", "figures", "vaccine_distribution_and_administration_by_manuf_time.png"), 
+       plot = combined_plot_manufq2, width = 16, height = 6)
+
+```
+
+Now, I will examine the percent rate of change in distribution and administration of vaccines by region over time. The drops depicted in figures 3 and 4 above can be seen in this table by the large percent drops in doses administered and distributed.  
+
+```{r}
+data_summary_rate_change <- data_summary %>%
+  group_by(Region) %>%
+  arrange(Year) %>%
+  mutate(
+    pct_change_distributed = (total_distributed - lag(total_distributed)) / lag(total_distributed) * 100,
+    pct_change_administered = (total_administered - lag(total_administered)) / lag(total_administered) * 100
+  )
+
+data_summary_rate_change
+
+# save as rds table!
+saveRDS(data_summary_rate_change, here::here("results", "tables", "region_rate_change.rds"))
+```
+
+Now, I will examine the percent rate of change in distribution and administration of vaccines by region over time. The drops depicted in figures 5 and 6 above can be seen in this table by the large percent drops in doses administered and distributed.  
+
+```{r}
+# Calculate rate of change in DISTRIBUTION for each manufacturer
+manufacturer_rate_dist <- manufacturer_yearly_dist %>%
+  arrange(Manufacturer, Year) %>%
+  group_by(Manufacturer) %>%
+  mutate(
+    prev_year_doses = lag(Doses),
+    rate_of_change = (Doses - prev_year_doses) / prev_year_doses
+  ) %>%
+  ungroup()
+
+# Distribution rate of change table
+manufacturer_rate_dist_table <- manufacturer_rate_dist %>%
+  select(Manufacturer, Year, Doses, rate_of_change) %>%
+  mutate(
+    rate_of_change = round(rate_of_change * 100, 2),
+    rate_of_change = ifelse(is.na(rate_of_change), "-", paste0(rate_of_change, "%"))
+  ) %>%
+  rename(
+    "Manufacturer" = Manufacturer,
+    "Year" = Year,
+    "Total Doses Distributed" = Doses,
+    "Rate of Change" = rate_of_change
+  )
+
+manufacturer_rate_dist_table
+
+# save as rds table
+saveRDS(manufacturer_rate_dist_table, here::here("results", "tables", "manuf_dist_rate_change.rds"))
+
+# Calculate rate of change in ADMINISTRATION for each manufacturer
+manufacturer_rate_admin <- manufacturer_yearly_admin %>%
+  arrange(Manufacturer, Year) %>%
+  group_by(Manufacturer) %>%
+  mutate(
+    prev_year_doses = lag(Doses),
+    rate_of_change = (Doses - prev_year_doses) / prev_year_doses
+  ) %>%
+  ungroup()
+
+# Administration rate of change table
+manufacturer_rate_admin_table <- manufacturer_rate_admin %>%
+  select(Manufacturer, Year, Doses, rate_of_change) %>%
+  mutate(
+    rate_of_change = round(rate_of_change * 100, 2),
+    rate_of_change = ifelse(is.na(rate_of_change), "-", paste0(rate_of_change, "%"))
+  ) %>%
+  rename(
+    "Manufacturer" = Manufacturer,
+    "Year" = Year,
+    "Total Doses Administered" = Doses,
+    "Rate of Change" = rate_of_change
+  )
+
+manufacturer_rate_admin_table
+
+# save as rds table
+saveRDS(manufacturer_rate_admin_table, here::here("results", "tables", "manuf_admin_rate_change.rds"))
+```
+

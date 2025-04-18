@@ -1,0 +1,477 @@
+---
+title: "Data Analysis: Modeling"
+author: "Natalie Cann"
+date: "2025-04-18"
+output: html_document
+---
+
+# Load Packages 
+```{r}
+library(dplyr) #for data processing/cleaning
+library(tidyr) #for data processing/cleaning
+library(skimr) #for nice visualization of data 
+library(here) #to set paths
+library(ggplot2) # for graphs
+library(kableExtra) # for tables
+library(naniar) # for missingness visualization (gg_miss_var)
+library(readr) # for reading in csv files
+library(purrr)
+library(lubridate) # for dealing with dates
+library(corrplot) # correlations
+library(gt) # for tables
+library(lm.beta) # for standardized beta coefficients)
+library(yardstick) # for RMSE
+library(rsample)
+library(tidymodels)
+library(recipes)
+library(parsnip)
+library(workflows)
+library(tune)
+library(broom)
+```
+
+# Load data
+
+```{r}
+data <- read_rds(here("data", "processed-data", "covid-vaccine.rds"))
+```
+
+# Create Test and Train data
+
+Make sure to respect the time series element of this - so I will arrange by Year then MMWR_week!
+
+```{r}
+set.seed(1234)
+# Sort the dataset by Year and MMWR_week
+data <- data %>% arrange(Year, MMWR_week)
+
+# Define the split ratio
+split_ratio <- 0.8
+
+# Calculate the split index
+split_index <- floor(nrow(data) * split_ratio)
+
+# Split the dataset into train and test sets
+train_data <- data[1:split_index, ]
+test_data <- data[(split_index + 1):nrow(data), ]
+```
+
+# Obtain Null Model 
+
+```{r}
+set.seed(1234)
+# Define the null model
+null_model <- null_model() %>%
+  set_engine("parsnip") %>%
+  set_mode("regression")
+
+# Fit the null model to the training data
+null_fit <- fit(null_model, prop_pfizer ~ 1, data = train_data)
+
+# Print the null model summary
+summary(null_fit)
+
+# Make predictions on the training data
+null_preds <- predict(null_fit, new_data = train_data) %>%
+  bind_cols(train_data)
+
+# Calculate RMSE and R-squared for the null model
+metrics <- metric_set(rmse, rsq)
+
+metrics_rmse <-metrics(null_preds, truth = prop_pfizer, estimate = .pred)
+
+# save as an rds for the supplementary file
+saveRDS(metrics_rmse, here("results", "tables", "null_model.rds"))
+```
+Null Model RMSE is 0.1693047 -- we want to see RMSEs lower than this 
+
+# Simple Linear Regression with CV
+
+Outcome: prop_pfizer --> what we want to predict
+Predictors: MMWR_week + doses_per_100k + avg_age_vaccinated +
+                      hesitancy_index + accessibility_index + Proportion_Male
+
+```{r}
+set.seed(1234)
+library(tidymodels)
+
+# Define the recipe
+lm_recipe <- recipe(prop_pfizer ~ MMWR_week + doses_per_100k + avg_age_vaccinated +
+                      hesitancy_index + accessibility_index + Proportion_Male,
+                    data = train_data)
+
+# Define the linear regression model
+lm_model <- linear_reg() %>%
+  set_engine("lm")
+
+# Create the workflow
+lm_workflow <- workflow() %>%
+  add_recipe(lm_recipe) %>%
+  add_model(lm_model)
+
+set.seed(1234)
+# Define cross-validation folds
+cv_folds <- vfold_cv(train_data, v = 10)
+
+# Perform cross-validation
+lm_res <- fit_resamples(lm_workflow, resamples = cv_folds, control = control_resamples(save_pred = TRUE))
+
+# Print the cross-validation results
+collect_metrics(lm_res)
+```
+RMSE: 0.1331424
+RSQ: 0.3749788
+
+Adding Polynomial Features and Interaction Terms to capture nonlinear patterns better: 
+
+```{r}
+set.seed(1234)
+# Define the recipe with polynomial features and interaction terms
+lm_recipe_ <- recipe(prop_pfizer ~ MMWR_week + doses_per_100k + avg_age_vaccinated +
+                      hesitancy_index + accessibility_index + Proportion_Male,
+                    data = train_data) %>%
+  step_poly(MMWR_week, degree = 2) %>%
+  step_interact(terms = ~ doses_per_100k:hesitancy_index)
+
+# Define the linear regression model
+lm_model_ <- linear_reg() %>%
+  set_engine("lm")
+
+# Create the workflow
+lm_workflow_ <- workflow() %>%
+  add_recipe(lm_recipe_) %>%
+  add_model(lm_model_)
+
+set.seed(1234)
+# Define cross-validation folds
+cv_folds <- vfold_cv(train_data, v = 10)
+
+# Perform cross-validation
+lm_res_ <- fit_resamples(lm_workflow_, resamples = cv_folds, control = control_resamples(save_pred = TRUE))
+
+# Print the cross-validation results
+collect_metrics(lm_res_)
+
+```
+RMSE: 0.1133714 -- slightly lower than before
+RSQ: 0.5137703 -- better than before, but not great
+
+Make predictions with test_data: 
+
+```{r}
+# Finalize the workflow with the trained model
+final_lm_workflow_ <- finalize_workflow(lm_workflow_, select_best(lm_res_, metric = "rmse"))
+
+# Fit the final model to the training data
+final_lm_fit_ <- fit(final_lm_workflow_, data = train_data)
+
+set.seed(1234)
+# Make predictions on the test data using the final linear regression model
+lm_test_preds_ <- predict(final_lm_fit_, new_data = test_data) %>%
+bind_cols(test_data)
+
+# view predictions 
+head(lm_test_preds_)
+
+
+# Calculate RMSE and R-squared for the test data predictions
+metrics <- metric_set(rmse, rsq)
+
+lm_test_metrics <- lm_test_preds_ %>%
+metrics(truth = prop_pfizer, estimate = .pred)
+
+# Print the metrics
+lm_test_metrics
+
+
+# calculate residuals 
+lm_test_preds_ <- lm_test_preds_ %>%
+mutate(residuals = prop_pfizer - .pred)
+
+# Create the residual plot
+simple_plot <- ggplot(lm_test_preds_, aes(x = .pred, y = residuals)) +
+  geom_point(alpha = 0.5, color = "lightblue") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +
+  labs(
+    title = "Figure Seven: Simple Linear Regression Model Residual Plot",
+    x = "Predicted Values",
+    y = "Residuals"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Times New Roman"),              # Set Times New Roman for all text
+    plot.title = element_text(face = "bold", hjust = 0.5),        # Bold and center title
+    axis.title = element_text(family = "Times New Roman"),
+    axis.text = element_text(family = "Times New Roman")
+  )
+
+# Display the plot
+simple_plot
+
+
+# save
+ggsave(here("results", "figures", "simple_linear_reg_plot.png"), plot = simple_plot, width = 8, height = 6)
+
+```
+RMSE: 0.2600579	-- model not performing well when it comes to new data
+RSQ: 0.2386880
+
+# LASSO with CV and polynomial factors and interaction terms 
+
+```{r}
+set.seed(1234)
+# Define the recipe with polynomial features and interaction terms
+lasso_recipe <- recipe(prop_pfizer ~ MMWR_week + doses_per_100k + avg_age_vaccinated +
+                        hesitancy_index + accessibility_index + Proportion_Male,
+                      data = train_data) %>%
+  step_poly(MMWR_week, degree = 2) %>%
+  step_interact(terms = ~ doses_per_100k:hesitancy_index)
+
+# Define the Lasso regression model
+lasso_model <- linear_reg(penalty = tune(), mixture = 1) %>%
+  set_engine("glmnet")
+
+# Create the workflow
+lasso_workflow <- workflow() %>%
+  add_recipe(lasso_recipe) %>%
+  add_model(lasso_model)
+
+set.seed(1234)
+# Define cross-validation folds
+cv_folds <- vfold_cv(train_data, v = 10)
+
+set.seed(1234)
+# Perform grid search for hyperparameter tuning
+lasso_grid <- grid_regular(penalty(range = c(0.001, 0.1)), levels = 10)
+
+lasso_res <- tune_grid(lasso_workflow, resamples = cv_folds, grid = lasso_grid, control = control_grid(save_pred = TRUE))
+
+# Print the best results
+show_best(lasso_res, metric = "rmse")
+```
+RMSE: 0.1648491	
+
+
+Make predictions with test data: 
+
+```{r}
+set.seed(1234)
+# Finalize the workflow with the best LASSO model
+final_lasso_workflow <- finalize_workflow(lasso_workflow, select_best(lasso_res, metric = "rmse"))
+
+# Fit the final LASSO model to the training data
+final_lasso_fit <- fit(final_lasso_workflow, data = train_data)
+
+set.seed(1234)
+# Make predictions on the test data using the LASSO model
+lasso_test_preds <- predict(final_lasso_fit, new_data = test_data) %>%
+bind_cols(test_data)
+
+# View the predictions
+head(lasso_test_preds)
+
+
+# Calculate RMSE and R-squared for the test data predictions
+metrics <- metric_set(rmse, rsq)
+
+lasso_test_metrics <- lasso_test_preds %>%
+metrics(truth = prop_pfizer, estimate = .pred)
+
+# Print the metrics
+lasso_test_metrics
+
+
+
+
+# Calculate residuals
+lasso_test_preds <- lasso_test_preds %>%
+mutate(residuals = prop_pfizer - .pred)
+
+# Create the residual plot with formatting
+lasso_plot <- ggplot(lasso_test_preds, aes(x = .pred, y = residuals)) +
+  geom_point(alpha = 0.5, color = "lightgreen") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +
+  labs(
+    title = "Figure Eight: LASSO Regression Model Residual Plot",
+    x = "Predicted Values",
+    y = "Residuals"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Times New Roman"),              # Apply Times New Roman globally
+    plot.title = element_text(face = "bold", hjust = 0.5),        # Bold + center title
+    axis.title = element_text(family = "Times New Roman"),
+    axis.text = element_text(family = "Times New Roman")
+  )
+
+# Display the plot
+lasso_plot
+
+
+# save
+ggsave(here("results", "figures", "lasso_plot.png"), plot = lasso_plot, width = 8, height = 6)
+```
+RMSE: 0.07907619	-- slightly lower, meaning that the model did slightly better in predicting after being trained
+
+# Random Forest with CV and polynomial factors and interaction terms 
+
+```{r}
+set.seed(1234)
+# Define the recipe with polynomial features and interaction terms
+rf_recipe <- recipe(prop_pfizer ~ MMWR_week + doses_per_100k + avg_age_vaccinated +
+                     hesitancy_index + accessibility_index + Proportion_Male,
+                   data = train_data) %>%
+  step_poly(MMWR_week, degree = 2) %>%
+  step_interact(terms = ~ doses_per_100k:hesitancy_index)
+
+# Define the Random Forest model
+rf_model <- rand_forest(trees = tune(), min_n = tune()) %>%
+  set_engine("ranger") %>%
+  set_mode("regression")
+
+# Create the workflow
+rf_workflow <- workflow() %>%
+  add_recipe(rf_recipe) %>%
+  add_model(rf_model)
+
+set.seed(1234)
+# Define cross-validation folds
+cv_folds <- vfold_cv(train_data, v = 10)
+
+set.seed(1234)
+# Perform grid search for hyperparameter tuning
+rf_grid <- grid_regular(trees(range = c(100, 1000)), min_n(range = c(2, 10)), levels = 5)
+
+rf_res <- tune_grid(rf_workflow, resamples = cv_folds, grid = rf_grid, control = control_grid(save_pred = TRUE))
+
+# Extract the best model
+best_rf <- select_best(rf_res, metric = "rmse")
+
+# Finalize the workflow with the best model
+final_rf_workflow <- finalize_workflow(rf_workflow, best_rf)
+
+# Fit the final model to the training data
+final_rf_fit <- fit(final_rf_workflow, data = train_data)
+
+# Get predictions on training data
+train_predictions <- augment(final_rf_fit, new_data = train_data)
+
+# Calculate RMSE
+rmse(train_predictions, truth = prop_pfizer, estimate = .pred)
+
+rsq(train_predictions, truth = prop_pfizer, estimate = .pred)
+```
+RMSE: 0.01143045		
+RSQ: 0.9967299	 --- very good fit, likely a sign of overfitting
+
+Make predictions with test data: 
+
+```{r}
+set.seed(1234)
+# Make predictions on the test data using the final random forest model
+rf_test_preds <- predict(final_rf_fit, new_data = test_data) %>%
+bind_cols(test_data)
+
+# View the predictions
+head(rf_test_preds)
+
+
+# Calculate RMSE and R-squared for the test data predictions
+metrics <- metric_set(rmse, rsq)
+
+rf_test_metrics <- rf_test_preds %>%
+metrics(truth = prop_pfizer, estimate = .pred)
+
+# Print the metrics
+rf_test_metrics
+
+
+# Calculate residuals
+rf_test_preds <- rf_test_preds %>%
+mutate(residuals = prop_pfizer - .pred)
+
+# Create the residual plot with formatting
+rf_plot <- ggplot(rf_test_preds, aes(x = .pred, y = residuals)) +
+  geom_point(alpha = 0.5, color = "lightpink") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray") +
+  labs(
+    title = "Figure Nine: Random Forest Model Residual Plot",
+    x = "Predicted Values",
+    y = "Residuals"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Times New Roman"),              # Set font globally
+    plot.title = element_text(face = "bold", hjust = 0.5),        # Bold and center title
+    axis.title = element_text(family = "Times New Roman"),
+    axis.text = element_text(family = "Times New Roman")
+  )
+
+# Display the plot
+rf_plot
+
+
+# save
+ggsave(here("results", "figures", "rfplot.png"), plot = rf_plot, width = 8, height = 6)
+```
+RMSE: 0.1596914
+RSQ: 0.1642553--- much lower
+
+# Create Summary Table
+
+
+```{r}
+#Create a data frame with RMSE values for each model
+rmse_summary <- data.frame(
+Model = c("Simple Linear Regression with Polynomial Linear Regression", "LASSO Regression", "Random Forest"),
+RMSE_Train = c(0.1133714, 0.1648491, 0.01143045),
+RMSE_Test = c(0.2600579, 0.07907619, 0.1596914)
+)
+
+# Create and assign the gt table
+model_perf_table <- rmse_summary %>%
+  gt() %>%
+  tab_header(
+    title = md("**Table Two: Model Performance Summary**"),
+    subtitle = "RMSE for Training and Test Data"
+  ) %>%
+  cols_label(
+    Model = "Model",
+    RMSE_Train = "RMSE (Train)",
+    RMSE_Test = "RMSE (Test)"
+  ) %>%
+  fmt_missing(
+    columns = everything(),
+    missing_text = "N/A"
+  ) %>%
+  tab_options(
+    table.font.names = "Times New Roman",
+    table.font.size = px(12),
+    heading.title.font.size = px(16),
+    heading.subtitle.font.size = px(12)
+  ) %>%
+  tab_style(
+    style = cell_text(font = "Times New Roman"),
+    locations = cells_column_labels(everything())
+  ) %>%
+  tab_style(
+    style = cell_text(font = "Times New Roman"),
+    locations = cells_body(columns = everything())
+  ) %>%
+  tab_style(
+    style = cell_text(font = "Times New Roman", weight = "bold"),
+    locations = cells_title(groups = "title")
+  )
+model_perf_table
+
+# Save the table
+gtsave(model_perf_table, filename = here::here("results", "tables", "model_performance_summary.png"))
+```
+
+```{r}
+
+```
+
+```{r}
+
+```

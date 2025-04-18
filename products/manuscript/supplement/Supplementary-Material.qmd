@@ -1,12 +1,10 @@
 ---
-title: "Supplement to Example Manuscript Template for a Data Analysis Project"
+title: "Supplementary Material: Analysis of COVID-19 Vaccination Trends Between 2021 and 2023"
 format:
   pdf:
     toc: false
     number-sections: true
     highlight-style: github
-bibliography: ../../assets/dataanalysis-references.bib
-csl: ../../assets/american-journal-of-epidemiology.csl
 ---
 
 
@@ -16,88 +14,194 @@ library(here)
 library(knitr)
 ```
 
-
-
-
-This shows some materials that could go into a supplementary file. Often you want/need references here too. You can use the same reference bib file for this and the main text (as done here) or have separate bib files.
-
-For illustrative purposes, I'm doing the supplement as pdf. For this to work, you need a (La)TeX system installed. It's easy. Just follow [these steps](https://quarto.org/docs/output-formats/pdf-basics.html).
-
-Of course you would choose the format based on needs.
-
-I'm also using a different style for the references here. (vancouver vs apa in the main manuscript). Usually one would have the formatting of the references the same in those two documents, but I want to illustrate how easy it is to switch reference formatting styles, you just need to get the right CSL file and specify it in the YAML header. We could also have a seperate reference bibtext (`.bib`) file, but here we are using the same.
-
-
-{{< pagebreak >}}
-
-
-
-
 # Overview
 
-A quick overview of what readers can find in the supplement.
+*Analysis of COVID-19 Vaccination Trends: Distribution and Administration*
 
+This document provides supplementary material for the manuscript "Analysis of COVID-19 Vaccination Trends: Distribution and Administration". It includes additional details on the methods used in the analysis, as well as additional results that were not included in the main manuscript.
 
 # Code and file information
 
-Explain here what each code/file is and does, and in which order (if any) users need to run thing to reproduce everything.
-Essentially, give a full set of instructions to re-generate everything.
+- “Cann-MADA-project.Rproj”: Establishes relative file paths for project
+- “README.md”: Provides brief order of scripts for reproducing and summarizes the folders within the project
+- “code” folder: Contains all code for processing, exploratory data analysis, and modeling analysis
+  - “processing-code" subfolder:
+    - "processing.qmd": Contains code for processing the raw data into the processed data
+  - "eda-code" subfolder:
+    - "eda.qmd": Contains code for exploratory data analysis
+  - "analysis-code" subfolder:
+    - "analysis.qmd": Contains code for modeling analysis
+- “data” folder:
+  - “raw-data” subfolder: Contains the raw COVID-19 Vaccine data
+  - “processed-data” subfolder: Contains the processed data used in the analysis
+- "results" folder: Contains all results from the analysis
+  - "figures" subfolder: Contains all figures generated from eda and analysis
+  - "tables" subfolder: Contains all tables generated from eda and analysis
+- "assets" folder: 
+  - Contains workflow schematic image
+  - Contains the CDC U.S. Regions image
+  - Contains american journal of epidemiology reference style and vancouver reference style (.csl files)
+  - "references" subfolder: 
+    - "project-citations.bib": Contains the references used in the manuscript
+- "products" folder: 
+  - "manuscript" subfolder: Contains manuscript.qmd file to create project manuscript
+    - "supplement" subfolder: Contains this file and the supplementary figures and tables
 
+{{< pagebreak >}}
+
+# Reproducing Results
+
+Reproducing this project requires R, RStudio, and Microsoft Word. Files should be run in the following order.
+
+1) In the code > processing-code folder: processing.qmd 
+2) In the code > eda-code folder: exploratoryanalysis.qmd
+3) In the code > analysis-code folder: analysis.Rmd
+4) In the products > manuscript folder: manuscript.qmd
+5) In the products > manuscript > supplement folder: Supplementary-Material.qmd
 
 {{< pagebreak >}}
 
 
-# Additional Method Details
+# Supplementary Results
 
-Often, the main manuscript only allows for an overview description of the methods. Use the supplement to describe all your methods, models and approaches in a lot of detail. Reference specific parts of your code as needed.
-
-{{< pagebreak >}}
-
-
-# Additional results
-
-Show additional results here. Those can be some useful exploratory/descriptive figures or tables, or results from additional analyses that didn't make it into the main text.
-
-
-## Example additional result
-
-
-@tbl-resulttable1 shows an additional table summarizing a model fit.
+Table one displays a summary of each variable of the COVID-19 vaccine dataset. 
 
 ```{r}
-#| label: tbl-resulttable1
-#| tbl-cap: "Another fit table."
+#| label: Summary Statistics
+#| fig-cap: "Table One: Summary Statistics of the Vaccination Data"
 #| echo: FALSE
-resulttable1 = readRDS(here("results","tables","resulttable1.rds"))
-knitr::kable(resulttable1)
+knitr::include_graphics(here("results", "tables", "summary_statistics.png"))
+```
+Figure one displays the correlatins between all variables within the COVID-19 vaccine dataset. 
+```{r}
+#| label: Overall Correlation Plot
+#| fig-cap: "Figure One: Overall Correlation Plot of COVID-19 Vaccine Data"
+#| echo: FALSE
+knitr::include_graphics(here("results", "figures", "overall_corrplot.png"))
 ```
 
+Figure two shows the correlations of specifically the distribution and administration variables in the dataset. The correlation between total_administered and total_distributed is 0.99; the correlation between total_admin_janssen and total_dist_janssen is 0.99; the correlation between total_admin_moderna and total_dist_moderna is 0.99; the correlation between total_admin_pfizer and total_dist_pfizer is 0.99; the correlation between total_admin_novavax and total_dist_novavax is 0.86, which is the lowest of all manufacturers; and the correlation between total_admin_unk and total_dist_unk is 0.03.
+```{r}
+#| label: Distribution and Administration Correlation Plot
+#| fig-cap: "Figure Two: Correlation Plot of Distributed vs. Administrated COVID-19 Vaccine Data"
+#| echo: FALSE
+knitr::include_graphics(here("results", "figures", "corrplot_dist_admin.png"))
+```
 
-
-@fig-result2 shows a scatterplot figure produced by one of the R scripts.
-
+Below, you will several scatterplots. Figure three is an overall scatterplot of the relationship between administered and distributed doses. The points closely follow the diagonal line, indicating a strong relationship between the two variables (confirmed by the correlation coeffecient of 0.99). 
 
 ```{r}
-#| label: fig-result2
-#| fig-cap: "Height and weight."
+#| label: Scatterplot of Distributed vs Administered Doses
+#| fig-cap: "Figure Three: Scatterplot of Distributed vs Administered Doses "
 #| echo: FALSE
-knitr::include_graphics(here("results","figures","height-weight.png"))
+knitr::include_graphics(here("results","figures","scatterplot_dist_admin.png"))
 ```
 
+Figures 4.1, 4.2, 4.3, and 4.2 show the scatterplots of the relationship between administered and distributed doses for each vaccine manufacturer. It appears as though all regions have a strong positive correlation between the number of vaccines distributed and administered. However, Pfizer and Moderna's points still follow the diagonal line the closest. 
 
-{{< pagebreak >}}
+```{r}
+#| label: Scatterplot of Distributed vs Administered Moderna Doses 
+#| fig-cap: "Figure 4.1: Scatterplot of Distributed vs Administered Moderna Doses "
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","scatterplot_dist_admin_moderna.png"))
+```
 
+```{r}
+#| label: Scatterplot of Distributed vs Administered Janssen Doses 
+#| fig-cap: "Figure 4.2: Scatterplot of Distributed vs Administered Janssen Doses "
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","scatterplot_dist_admin_janssen.png"))
+```
 
-# Discussion
+```{r}
+#| label: Scatterplot of Distributed vs Administered Pfizer Doses 
+#| fig-cap: "Figure 4.3: Scatterplot of Distributed vs Administered Pfizer Doses "
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","scatterplot_dist_admin_pfizer.png"))
+```
 
-Any additional discussion regarding the supplementary material/findings.
+```{r}
+#| label: Scatterplot of Distributed vs Administered Novavax Doses 
+#| fig-cap: "Figure 4.4: Scatterplot of Distributed vs Administered Novavax Doses "
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","scatterplot_dist_admin_novavax.png"))
+```
 
-These papers [@mckay2020; @mckay2020a] are good examples of papers published using a fully reproducible setup similar to the one shown in this template. 
+Figures 5.1, 5.2, 5.3, and 5.4 show the scatterplots of the relationship between administered and distributed doses for each region of the U.S.. 
 
-{{< pagebreak >}}
+```{r}
+#| label: Scatterplot of Distributed vs Administered Doses in the South 
+#| fig-cap: "Figure 5.1: Scatterplot of Distributed vs Administered Doses in the South"
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","scatterplot_dist_admin_south.png"))
+```
 
+```{r}
+#| label: Scatterplot of Distributed vs Administered Doses in the Northeast 
+#| fig-cap: "Figure 5.2: Scatterplot of Distributed vs Administered Doses in the Northeast"
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","scatterplot_dist_admin_northeast.png"))
+```
 
-# References
+```{r}
+#| label: Scatterplot of Distributed vs Administered Doses in the Midwest
+#| fig-cap: "Figure 5.3: Scatterplot of Distributed vs Administered Doses in the Midwest"
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","scatterplot_dist_admin_midwest.png"))
+```
 
+```{r}
+#| label: Scatterplot of Distributed vs Administered Doses in the West
+#| fig-cap: "Figure 5.4: Scatterplot of Distributed vs Administered Doses in the West"
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","scatterplot_dist_admin_west.png"))
+```
 
+Table two shows the correlations between doses administered and distributed in each region of the U.S.. All four regions have high correlations, however the west is the highest. 
+
+```{r}
+#| label: Regional Correlations Between Doses Administered and Distributed
+#| fig-cap: "Table Two: Regional Correlations Between Doses Administered and Distributed"
+#| echo: FALSE
+resulttable2 = readRDS(here("results","tables","correlation_by_region.rds"))
+knitr::kable(resulttable2)
+```
+
+Table three shows the percent rate change in distribution and administration of the COVID-19 vaccine across time in each region of the U.S.. The drops depicted in figures 3 and 4 in the manuscript can be seen in this table by the large percent drops in doses administered and distributed. 
+
+```{r}
+#| label: Percent Rate Change in Distribution and Administration of COVID-19 Vaccine with time in each Region
+#| fig-cap: "Table Three: Percent Rate Change in Distribution and Administration of COVID-19 Vaccine with time in each Region"
+#| echo: FALSE
+resulttable3 = readRDS(here("results","tables","region_rate_change.rds"))
+knitr::kable(resulttable3)
+```
+
+Table 4.1 and 4.2 show the percent rate change in distribution (4.1) and administration (4.2) of the COVID-19 vaccine across time for each manufacturer. The drops depicted in figures 5 and 6 in the manuscript can be seen in this table by the large percent drops in doses administered and distributed. 
+
+```{r}
+#| label: Percent Rate Change in Distribution of COVID-19 Vaccine with time for each Manufacturer
+#| fig-cap: "Table 4.1: Percent Rate Change in Distribution of COVID-19 Vaccine with time for each Manufacturer"
+#| echo: FALSE
+resulttable4_1 = readRDS(here("results","tables","manuf_dist_rate_change.rds"))
+knitr::kable(resulttable4_1)
+```
+
+```{r}
+#| label: Percent Rate Change in Administration of COVID-19 Vaccine with time for each Manufacturer
+#| fig-cap: "Table 4.2: Percent Rate Change in Administration of COVID-19 Vaccine with time for each Manufacturer"
+#| echo: FALSE
+resulttable4_2 = readRDS(here("results","tables","manuf_admin_rate_change.rds"))
+knitr::kable(resulttable4_2)
+```
+
+Table 5 shows the RMSE value of the null model (with no predictors) from the modeling analysis.
+
+```{r}
+#| label: Null Model RMSE
+#| fig-cap: "Table 5: Null Model RMSE"
+#| echo: FALSE
+resulttable5 = readRDS(here("results", "tables", "null_model.rds"))
+knitr::kable(resulttable5)
+```
 
