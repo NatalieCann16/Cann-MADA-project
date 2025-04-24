@@ -1,0 +1,192 @@
+---
+title: Project Review Template 
+author: Murhy John
+date: date-modified
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+---
+
+# Overview
+
+Title of project: Analysis of COVID-19 Vaccination Trends: Distribution and Administration Between 2021 and 2023
+
+Name of project author(s): Natalie Cann
+
+Name of project reviewer: Murphy John
+
+# Specific project content evaluation
+
+## Background, Context and Motivation
+
+How well is the context of the project described? Is a comprehensive background, including summary of previous/related work given? Is the project well placed into the context of existing work (including proper referencing of existing work). Is it clear why the project was undertaken and what new information it hopes to provide?
+
+### Feedback and Comments
+
+Background on vaccines and their formulations is given. Description of covid 19 pandemic is given. You should emphasize the main questions and motivate the relevance.
+
+### Summary assessment
+
+-   some contextualization and motivation
+
+## Question description
+
+How well and clear are the question(s)/hypotheses the project aims to address described? Is it clear how the questions relate to the data?
+
+### Feedback and Comments
+
+Questions are clearly outlined. The 2nd research question is two questions- try to condense it to one.
+
+### Summary assessment
+
+-   question/hypotheses fully clear
+
+## Data description
+
+How well is the data overall described? Is the source provided? Is a codebook or other meta-information available that makes it clear what the data is?
+
+### Feedback and Comments
+
+Data is described well and source is provided. In Data Acquisition, put the link to the dataset in your references, not the main text.
+
+### Summary assessment
+
+-   source and overall structure of data well explained
+
+## Data wrangling and exploratory analysis
+
+How well is the data cleaned/processed and explored? Are all steps reasonable and well explained? Are alternatives discussed and considered? Are meaningful exploratory results shown (e.g. in the supplementary materials)?
+
+### Feedback and Comments
+
+Data is explored well but but the eda code and output is a bit disorganized. Looking exclusively at total doses distributed and total doses administered doesn't add to the understanding of covid vaccine distribution. Also population needs to be controlled for.
+
+### Summary assessment
+
+-   some weaknesses in wrangling and exploratory component
+
+## Appropriateness of Analysis
+
+Were the analysis methods appropriate for the data? Was the analysis done properly? Were different components of the analysis (e.g. performance measure, variable selection, data pre-processing, model evaluation) done in the best way possible and explained well?
+
+### Feedback and Comments
+
+-   The "slr model with polynomial regression" needs to be given the proper name.
+-   You should not evaluate all models on the test data, only the final model.
+-   Check your code- usually the test rmse is lower than the train rmse so this makes me wonder if you fit the model(s) to the test data.
+-   The residual vs predicted plots are concerning as well- they shouldn't be straight lines.
+-   Your lasso model is only predicting one value. Check which predictors it selected.
+-   You need to account for population of the regions in the models and results.
+
+### Summary assessment
+
+-   defensible but not optimal analysis
+
+## Presentation
+
+How well are results presented? Are tables and figures easy to read and understand? Are the main figures/tables publication level quality?
+
+### Feedback and Comments
+
+Figures all make sense and are easy to read. Consider cleaning up the figure numbers (should be numeric, not words).
+
+### Summary assessment
+
+-   results are presented ok, with room for improvement
+
+## Discussion/Conclusions
+
+Are the study findings properly discussed? Are strengths and limitations acknowledged? Are findings interpreted properly?
+
+### Feedback and Comments
+
+The discussion is well written. You could elaborate on the implications of the results. The CDC may have limitations about their dataset on their website that you could discuss.
+
+### Summary assessment
+-   strong, complete and clear discussion
+
+## Further comments
+
+Notes on your manuscript:
+
+Abstract:
+
+-   The 2nd research question is two questions- try to condense it to one.
+-   Before abbreviating MMWR, define what it means.
+-   What does "the South" mean? All southern states? Southeast vs southwest?
+-   What models are implemented?
+
+Introduction:
+
+-   Reverse the order of "The Janssen vaccine, also known as the Johnson and Johnson vaccine was discontinued (4). This vaccine utilized an adenovirus as a vector (5)." Define the adenovirus vaccine then state the brand discontinuation.
+-   I would suggest putting your data source in the methods section. You can briefly talk about the data you use in the intro but the specifics should be in methods.
+-   Condense your three questions to three questions, not five.
+
+Methods:
+
+-   You don't need to use the word "please". Just reference, ie "see section XXX".
+-   What is "Simple Linear Regression with Polynomial Linear Regression"? It's either one or the other.
+-   Remove the underscore from "COVID_dataset" in the cleaning process section.
+-   Don't say "I performed" in your manuscript. Either say "we" or "XX was performed..."
+-   You need to account for population size in your regions and when modeling. If you can, use the CDC's geographic division regions to make your analysis more robust.
+-   Discuss the cross validation and train/test methods.
+
+Results:
+
+-   "that South is the most populous region within the U.S." population is going to distort your results if you don't control for it in your analysis
+-   The fact that some of your test rmse values are higher is concerning. Check your code and ensure that you fit the data to the train data. Also, you shouldn't be looking at the metrics to the test data for all models. you should select your final model based only on the train data then evaluate it (the single model) on the test data.
+-   Again, the slr model with polynomial regression doesn't make sense. Check your code but likely this is just polynomial regression?
+-   What did you model? What are the covariates?
+
+# Overall project content evaluation
+
+Evaluate overall features of the project by filling in the sections below.
+
+## Structure
+
+Is the project well structured? Are files in well labeled folders? Do files have reasonable names? Are all "junk" files not needed for analysis/reproduction removed? By just looking at files and folders, can you get an idea of how things fit together?
+
+### Feedback and Comments
+
+Project structure looks good
+
+### Summary assessment
+
+-   well structured
+
+## Documentation
+
+How well is the project documented? Are you able to understand each step of the whole analysis, each decision that was made, and each line of code? Is enough information provided as comments in code or as part of Rmd files?
+
+### Feedback and Comments
+
+There are comments throughout the code that explain it
+
+### Summary assessment
+
+-   fully and well documented
+
+## Reproducibility
+
+Are all results fully reproducible? Is documentation provided which clearly explains how to reproduce things, and does it work without the need for any manual intervention? Are you able to re-run the whole analysis without having to do manual interventions/edits?
+
+### Feedback and Comments
+
+error in your eda and analysis scripts.
+
+### Summary assessment
+-   small parts not reproducible or required manual intervention
+
+## Thoroughness
+
+How thorough was the overall study? Were alternatives (e.g. different ways of processing the data or different models) considered? Were alternatives discussed? Were the questions/hypotheses fully and thoroughly addressed?
+
+### Feedback and Comments
+
+You have strong research questions. My biggest concern is that population needs to be included in the analysis. If that information isn't in the cdc data, you can get it from another source and merge datasets.
+
+### Summary assessment
+
+-   decent level of thoroughness
