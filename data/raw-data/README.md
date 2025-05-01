@@ -31,21 +31,8 @@ https://data.cdc.gov/Vaccinations/COVID-19-Vaccinations-in-the-United-States-Jur
 -   Administered_Unk_Manuf: Total number of doses administered from
     other manufacturers
 
-**Flu vaccine dataset:**
+**Population dataset:**
 
-There are 9 variables in this dataset. The CDC website did not include
-descriptions for the variables, however they are pretty straightforward.
-I added my own descriptions below.
-https://data.cdc.gov/Vaccinations/Weekly-Cumulative-Doses-in-Millions-of-Influenza-V/k87d-gv3u/about_data
+In order to control for population size, I used U.S. Census Bureau Population data: https://www.census.gov/popclock/data_tables.php?component=growth
 
--   Influenza_Season: flu season (format: year1-year2)
--   Start_Date: start of week
--   End_Date: end of week
--   Reporting_Timeframe: start of week to end of week
--   Week: week number of the year (1 to 52)
--   Week_Sort_Order: week in flu season (1 to 32)
--   Current_Season_Week_Ending_Label: appears to be an administrative
-    variable
--   Cumulative_Flu_Doses_Distributed: cumulative flu doses distributed
-    in millions
--   Current_Through: also appears to be an administrative variable
+The population for each major region of the U.S. (South, Midwest, Northeast, West) between 2021 and 2023 is provided. 
