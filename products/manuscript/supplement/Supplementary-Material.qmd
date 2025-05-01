@@ -68,31 +68,34 @@ Table one displays a summary of each variable of the COVID-19 vaccine dataset.
 
 ```{r}
 #| label: Summary Statistics
-#| fig-cap: "Table One: Summary Statistics of the Vaccination Data"
+#| fig-cap: "Supplement Table 1: Summary Statistics of the Vaccination Data in Original Dataset and Population Adjusted Dataset"
 #| echo: FALSE
 knitr::include_graphics(here("results", "tables", "summary_statistics.png"))
 ```
-Figure one displays the correlatins between all variables within the COVID-19 vaccine dataset. 
+
+Figure one displays the correlations between all variables within the COVID-19 vaccine population adjusted dataset. 
+
 ```{r}
 #| label: Overall Correlation Plot
-#| fig-cap: "Figure One: Overall Correlation Plot of COVID-19 Vaccine Data"
+#| fig-cap: "Supplement Figure 1: Overall Correlation Plot of COVID-19 Vaccine Data"
 #| echo: FALSE
 knitr::include_graphics(here("results", "figures", "overall_corrplot.png"))
 ```
 
-Figure two shows the correlations of specifically the distribution and administration variables in the dataset. The correlation between total_administered and total_distributed is 0.99; the correlation between total_admin_janssen and total_dist_janssen is 0.99; the correlation between total_admin_moderna and total_dist_moderna is 0.99; the correlation between total_admin_pfizer and total_dist_pfizer is 0.99; the correlation between total_admin_novavax and total_dist_novavax is 0.86, which is the lowest of all manufacturers; and the correlation between total_admin_unk and total_dist_unk is 0.03.
+Figure two shows the correlations of specifically the distribution and administration variables in the dataset. The correlation between total_administered and total_distributed is 0.89; the correlation between total_admin_janssen and total_dist_janssen is 0.96; the correlation between total_admin_moderna and total_dist_moderna is 0.87; the correlation between total_admin_pfizer and total_dist_pfizer is 0.90; the correlation between total_admin_novavax and total_dist_novavax is 0.90, which is the lowest of all manufacturers; and the correlation between total_admin_unk and total_dist_unk is -0.01. The distributed and administered unknown variables are likely a part of this dataset due to poor data recording. 
+
 ```{r}
 #| label: Distribution and Administration Correlation Plot
-#| fig-cap: "Figure Two: Correlation Plot of Distributed vs. Administrated COVID-19 Vaccine Data"
+#| fig-cap: "Supplement Figure 2: Correlation Plot of Distributed vs. Administrated COVID-19 Vaccine Data"
 #| echo: FALSE
 knitr::include_graphics(here("results", "figures", "corrplot_dist_admin.png"))
 ```
 
-Below, you will several scatterplots. Figure three is an overall scatterplot of the relationship between administered and distributed doses. The points closely follow the diagonal line, indicating a strong relationship between the two variables (confirmed by the correlation coeffecient of 0.99). 
+Below, you will several scatterplots. Figure three is an overall scatterplot of the relationship between administered and distributed doses. The points closely follow the diagonal line, indicating a strong relationship between the two variables (confirmed by the correlation coeffecient of 0.89). 
 
 ```{r}
 #| label: Scatterplot of Distributed vs Administered Doses
-#| fig-cap: "Figure Three: Scatterplot of Distributed vs Administered Doses "
+#| fig-cap: "Supplement Figure 3: Scatterplot of Distributed vs Administered Doses "
 #| echo: FALSE
 knitr::include_graphics(here("results","figures","scatterplot_dist_admin.png"))
 ```
@@ -101,28 +104,28 @@ Figures 4.1, 4.2, 4.3, and 4.2 show the scatterplots of the relationship between
 
 ```{r}
 #| label: Scatterplot of Distributed vs Administered Moderna Doses 
-#| fig-cap: "Figure 4.1: Scatterplot of Distributed vs Administered Moderna Doses "
+#| fig-cap: "Supplement Figure 4.1: Scatterplot of Distributed vs Administered Moderna Doses"
 #| echo: FALSE
 knitr::include_graphics(here("results","figures","scatterplot_dist_admin_moderna.png"))
 ```
 
 ```{r}
 #| label: Scatterplot of Distributed vs Administered Janssen Doses 
-#| fig-cap: "Figure 4.2: Scatterplot of Distributed vs Administered Janssen Doses "
+#| fig-cap: "Supplement Figure 4.2: Scatterplot of Distributed vs Administered Janssen Doses"
 #| echo: FALSE
 knitr::include_graphics(here("results","figures","scatterplot_dist_admin_janssen.png"))
 ```
 
 ```{r}
 #| label: Scatterplot of Distributed vs Administered Pfizer Doses 
-#| fig-cap: "Figure 4.3: Scatterplot of Distributed vs Administered Pfizer Doses "
+#| fig-cap: "Supplement Figure 4.3: Scatterplot of Distributed vs Administered Pfizer Doses"
 #| echo: FALSE
 knitr::include_graphics(here("results","figures","scatterplot_dist_admin_pfizer.png"))
 ```
 
 ```{r}
 #| label: Scatterplot of Distributed vs Administered Novavax Doses 
-#| fig-cap: "Figure 4.4: Scatterplot of Distributed vs Administered Novavax Doses "
+#| fig-cap: "Supplement Figure 4.4: Scatterplot of Distributed vs Administered Novavax Doses"
 #| echo: FALSE
 knitr::include_graphics(here("results","figures","scatterplot_dist_admin_novavax.png"))
 ```
@@ -131,28 +134,28 @@ Figures 5.1, 5.2, 5.3, and 5.4 show the scatterplots of the relationship between
 
 ```{r}
 #| label: Scatterplot of Distributed vs Administered Doses in the South 
-#| fig-cap: "Figure 5.1: Scatterplot of Distributed vs Administered Doses in the South"
+#| fig-cap: "Supplement Figure 5.1: Scatterplot of Distributed vs Administered Doses in the South"
 #| echo: FALSE
 knitr::include_graphics(here("results","figures","scatterplot_dist_admin_south.png"))
 ```
 
 ```{r}
 #| label: Scatterplot of Distributed vs Administered Doses in the Northeast 
-#| fig-cap: "Figure 5.2: Scatterplot of Distributed vs Administered Doses in the Northeast"
+#| fig-cap: "Supplement Figure 5.2: Scatterplot of Distributed vs Administered Doses in the Northeast"
 #| echo: FALSE
 knitr::include_graphics(here("results","figures","scatterplot_dist_admin_northeast.png"))
 ```
 
 ```{r}
 #| label: Scatterplot of Distributed vs Administered Doses in the Midwest
-#| fig-cap: "Figure 5.3: Scatterplot of Distributed vs Administered Doses in the Midwest"
+#| fig-cap: "Supplement Figure 5.3: Scatterplot of Distributed vs Administered Doses in the Midwest"
 #| echo: FALSE
 knitr::include_graphics(here("results","figures","scatterplot_dist_admin_midwest.png"))
 ```
 
 ```{r}
 #| label: Scatterplot of Distributed vs Administered Doses in the West
-#| fig-cap: "Figure 5.4: Scatterplot of Distributed vs Administered Doses in the West"
+#| fig-cap: "Supplement Figure 5.4: Scatterplot of Distributed vs Administered Doses in the West"
 #| echo: FALSE
 knitr::include_graphics(here("results","figures","scatterplot_dist_admin_west.png"))
 ```
@@ -161,7 +164,7 @@ Table two shows the correlations between doses administered and distributed in e
 
 ```{r}
 #| label: Regional Correlations Between Doses Administered and Distributed
-#| fig-cap: "Table Two: Regional Correlations Between Doses Administered and Distributed"
+#| fig-cap: "Supplement Table 2: Regional Correlations Between Doses Administered and Distributed in Pouplation Adjusted Dataset"
 #| echo: FALSE
 resulttable2 = readRDS(here("results","tables","correlation_by_region.rds"))
 knitr::kable(resulttable2)
@@ -171,9 +174,9 @@ Table three shows the percent rate change in distribution and administration of 
 
 ```{r}
 #| label: Percent Rate Change in Distribution and Administration of COVID-19 Vaccine with time in each Region
-#| fig-cap: "Table Three: Percent Rate Change in Distribution and Administration of COVID-19 Vaccine with time in each Region"
+#| fig-cap: "Supplement Table 3: Percent Rate Change in Distribution and Administration of COVID-19 Vaccine with time in each Region (in Population Adjusted Dataset)"
 #| echo: FALSE
-resulttable3 = readRDS(here("results","tables","region_rate_change.rds"))
+resulttable3 = readRDS(here("results","tables","region_rate_change_adj.rds"))
 knitr::kable(resulttable3)
 ```
 
@@ -181,27 +184,54 @@ Table 4.1 and 4.2 show the percent rate change in distribution (4.1) and adminis
 
 ```{r}
 #| label: Percent Rate Change in Distribution of COVID-19 Vaccine with time for each Manufacturer
-#| fig-cap: "Table 4.1: Percent Rate Change in Distribution of COVID-19 Vaccine with time for each Manufacturer"
+#| fig-cap: "Supplement Table 4.1: Percent Rate Change in Distribution of COVID-19 Vaccine with time for each Manufacturer (in Population Adjusted Dataset)"
 #| echo: FALSE
-resulttable4_1 = readRDS(here("results","tables","manuf_dist_rate_change.rds"))
+resulttable4_1 = readRDS(here("results","tables","manuf_dist_rate_change_adj.rds"))
 knitr::kable(resulttable4_1)
 ```
 
 ```{r}
 #| label: Percent Rate Change in Administration of COVID-19 Vaccine with time for each Manufacturer
-#| fig-cap: "Table 4.2: Percent Rate Change in Administration of COVID-19 Vaccine with time for each Manufacturer"
+#| fig-cap: "Supplement Table 4.2: Percent Rate Change in Administration of COVID-19 Vaccine with time for each Manufacturer (in Population Adjusted Dataset)"
 #| echo: FALSE
-resulttable4_2 = readRDS(here("results","tables","manuf_admin_rate_change.rds"))
+resulttable4_2 = readRDS(here("results","tables","manuf_admin_rate_change_adj.rds"))
 knitr::kable(resulttable4_2)
 ```
 
-Table 5 shows the RMSE value of the null model (with no predictors) from the modeling analysis.
+Table 5 shows the RMSE value of the null model (with no predictors) from the modeling analysis. The R-squared can be assumed to be 0 here. 
 
 ```{r}
 #| label: Null Model RMSE
-#| fig-cap: "Table 5: Null Model RMSE"
+#| fig-cap: "Supplement Table 5: Null Model RMSE"
 #| echo: FALSE
-resulttable5 = readRDS(here("results", "tables", "null_model.rds"))
+resulttable5 = readRDS(here("results", "tables", "null_model_metrics.rds"))
 knitr::kable(resulttable5)
 ```
 
+Table 6 shows the Simple Linear Regression Metrics results from the modeling analysis. 
+
+```{r}
+#| label: Simple Linear Regression Metrics
+#| fig-cap: "Supplement Table 6: Simple Linear Regression Metrics"
+#| echo: FALSE
+knitr::include_graphics(here("results","tables","slr_metrics_table.png"))
+```
+
+An additional model (the random forest model including all predictors) was fitted to the test data out of curiosity. The metrics are shown in Table 7. 
+
+```{r}
+#| label: Original/All Predictors Random Forest Model Test Data Metrics
+#| fig-cap: "Supplement Table 7: Original/All Predictors Random Forest Model Test Data Metrics"
+#| echo: FALSE
+resulttable5 = readRDS(here("results", "tables", "orig_rf_model_test.rds"))
+knitr::kable(resulttable5)
+```
+
+Figure 6 displays the corresponding observed vs predicted plot for this model when it was fitted to the test data. 
+
+```{r}
+#| label: Original/All Predictors Random Forest Model Observed vs Predicted (Test Data Fit)
+#| fig-cap: "Supplement Figure 6: All Predictors Random Forest Model Observed vs Predicted (Test Data Fit)"
+#| echo: FALSE
+knitr::include_graphics(here("results","figures","orig_rf_model_test_plot.png"))
+```

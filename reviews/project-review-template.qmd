@@ -102,7 +102,7 @@ Are the study findings properly discussed? Are strengths and limitations acknowl
 
 ### Feedback and Comments
 
-The discussion is well written. You could elaborate on the implications of the results. The CDC may have limitations about their dataset on their website that you could discuss.
+The discussion is well written. You could elaborate on the implications of the results. The CDC may have limitations about their dataset on their website that you could discuss. 
 
 ### Summary assessment
 -   strong, complete and clear discussion

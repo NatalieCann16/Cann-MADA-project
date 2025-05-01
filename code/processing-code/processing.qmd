@@ -186,7 +186,7 @@ covid_vaccine_combined <- covid_vaccine_combined %>%
 
 # Creation of Synthetic Variables to be used in Model
 
-My dataset doesn't have enough great predictors for the modeling analysis - so I will create some here. 
+My dataset doesn't have enough great predictors for the modeling analysis - so I will create some here. I will make the synthetic vaccine hesitancy index variable will be larger when vaccine distribution is lower. The synthetic vaccine accessability index variable will be larger when vaccine distribution is higher. 
 
 ```{r}
 # per capita doses: doses_per_100k
@@ -197,7 +197,7 @@ My dataset doesn't have enough great predictors for the modeling analysis - so I
 US_Population <- 333200000
 covid_vaccine_combined <- covid_vaccine_combined %>%
   mutate(
-    doses_per_100k = (total_administered / US_Population) * 100000
+    doses_per_100k = (total_distributed / US_Population) * 100000
   )
 
 # Average age of individuals who got vaccinated that week: avg_age_vaccinated
@@ -207,41 +207,47 @@ covid_vaccine_combined <- covid_vaccine_combined %>%
   )
 
 # Vaccine Hesitancy Index: hesitancy_index (0 = lowest hesitancy and 1 = highest hesitancy)
-library(scales)
 set.seed(321)
 covid_vaccine_combined <- covid_vaccine_combined %>%
   mutate(
-    # Apply log to compress large values, add 1 to avoid log(0)
-    log_administered = log1p(total_administered),
+    # Log-transform administered doses (avoid log(0))
+    log_distributed = log1p(total_distributed),
     
-    # Rescale log-transformed doses to [0, 1]
-    dose_scaled = rescale(log_administered, to = c(0, 1)),
+    # Rescale to [0, 1]
+    dose_scaled = rescale(log_distributed, to = c(0, 1)),
     
-    # Invert so more doses → lower hesitancy
+    # Invert scale: more doses = lower hesitancy
     hesitancy_base = 1 - dose_scaled,
     
-    # Add random noise, then clamp between 0.2 and 0.6
-    hesitancy_index = pmin(pmax(hesitancy_base + runif(n(), -0.05, 0.05), 0.2), 0.6)
+    # Add small random noise proportional to hesitancy
+    hesitancy_noisy = hesitancy_base + rnorm(n(), mean = 0, sd = 0.02),
+    
+    # Clamp between 0 and 1 to keep valid proportions
+    hesitancy_index = pmin(pmax(hesitancy_noisy, 0), 1)
   ) %>%
-  select(-log_administered, -dose_scaled, -hesitancy_base)
+  select(-log_distributed, -dose_scaled, -hesitancy_base, -hesitancy_noisy)
 
 #Vaccine Accessibility Index: accessibility_index (0 = lowest accessibility and 1 = highest accessibility)
-set.seed(322)  # Different seed than hesitancy for realism
+set.seed(322)  # Different seed for realism
 covid_vaccine_combined <- covid_vaccine_combined %>%
   mutate(
     # Log-transform and rescale administered doses
-    log_administered = log1p(total_administered),
-    dose_scaled = rescale(log_administered, to = c(0, 1)),
-
-    # Accessibility goes up with higher dose volume
+    log_distributed = log1p(total_distributed),
+    dose_scaled = rescale(log_distributed, to = c(0, 1)),
+    
+    # Accessibility goes up with more doses
     accessibility_base = dose_scaled,
     
-    # Add small random noise and constrain to range [0.4, 0.9]
-    accessibility_index = pmin(pmax(accessibility_base + runif(n(), -0.05, 0.05), 0.4), 0.9)
+    # Add small random noise
+    accessibility_noisy = accessibility_base + rnorm(n(), mean = 0, sd = 0.02),
+    
+    # Clamp to [0, 1] (full possible range, more realistic)
+    accessibility_index = pmin(pmax(accessibility_noisy, 0), 1)
   ) %>%
-  select(-log_administered, -dose_scaled, -accessibility_base)
+  select(-log_distributed, -dose_scaled, -accessibility_base, -accessibility_noisy)
 
-# Proportion of Pfizer: prop_pfizer
+
+# Proportion Distributed of Pfizer: prop_pfizer
 covid_vaccine_combined <- covid_vaccine_combined %>%
   mutate(
     prop_pfizer = total_dist_pfizer / total_distributed
@@ -261,6 +267,202 @@ Now, I will save the dataset.
 # Save the cleaned dataset at an RDS to the data --> processed-data folder
 location_covid <- here::here("data","processed-data", "covid-vaccine.rds")
 saveRDS(covid_vaccine_combined, file = location_covid)
+```
+
+# Processing the Census Region Population Size data 
+
+This data contains the population sizes of the four major regions of the US from Census Bureau: https://www.census.gov/popclock/data_tables.php?component=growth 
+
+I will use this to standardize the populations for the four major regions of the United States. 
+
+```{r}
+population <- read_excel(here("data", "raw-data", "Census_Region_Pops.xlsx"))
+```
+
+This data actually looks clean, so I do not believe any cleaning needs to be done. 
+
+# Create dataset that controls for population 
+
+```{r}
+covid_vaccine <- readRDS(here("data", "processed-data", "covid-vaccine.rds"))
+```
+
+Now, I will add a Population column according to region and year, using data from the census region population excel file. 
+
+```{r}
+# Add Population directly based on Year and Region (use population from the census data just loaded in)
+covid_vaccine_pop <- covid_vaccine %>%
+  mutate(
+    Population = case_when(
+      Year == 2021 & Region == "Northeast" ~ 57252533,
+      Year == 2021 & Region == "Midwest"   ~ 68872831,
+      Year == 2021 & Region == "West"       ~ 78606386,
+      Year == 2021 & Region == "South"      ~ 127368010,
+      
+      Year == 2022 & Region == "Northeast" ~ 57159597,
+      Year == 2022 & Region == "Midwest"   ~ 68903297,
+      Year == 2022 & Region == "West"       ~ 78916578,
+      Year == 2022 & Region == "South"      ~ 129037849,
+      
+      Year == 2023 & Region == "Northeast" ~ 57398303,
+      Year == 2023 & Region == "Midwest"   ~ 69186401,
+      Year == 2023 & Region == "West"       ~ 79328169,
+      Year == 2023 & Region == "South"      ~ 130893358,
+      
+      TRUE ~ NA_real_  # in case there are other values not matched
+    )
+  )
+```
+
+Now, I will use this new population column to control for population per 100,000. 
+
+```{r}
+covid_vaccine_pop <- covid_vaccine_pop %>%
+  mutate(
+    total_dist_per_100k = (total_distributed / Population) * 100000,
+    total_dist_janssen_per_100k = (total_dist_janssen / Population) * 100000,
+    total_dist_moderna_per_100k = (total_dist_moderna / Population) * 100000,
+    total_dist_pfizer_per_100k = (total_dist_pfizer / Population) * 100000,
+    total_dist_novavax_per_100k = (total_dist_novavax / Population) * 100000,
+    total_dist_unk_per_100k = (total_dist_unk / Population) * 100000,
+    
+    total_admin_per_100k = (total_administered / Population) * 100000,
+    total_admin_janssen_per_100k = (total_admin_janssen / Population) * 100000,
+    total_admin_moderna_per_100k = (total_admin_moderna / Population) * 100000,
+    total_admin_pfizer_per_100k = (total_admin_pfizer / Population) * 100000,
+    total_admin_novavax_per_100k = (total_admin_novavax / Population) * 100000,
+    total_admin_unk_per_100k = (total_admin_unk / Population) * 100000
+  )
+```
+
+I will create synthetic variables based on these population adjusted variables now. 
+
+```{r}
+set.seed(456)  # For reproducibility
+
+# Proportion Distributed of Pfizer: prop_pfizer
+covid_vaccine_pop <- covid_vaccine_pop %>%
+  mutate(
+    prop_pfizer_adj = total_dist_pfizer_per_100k / total_dist_per_100k
+  )
+
+# per capita doses: doses_per_100k
+# average US population b/w Dec 2020 and May 2023 
+# Dec 2020: 331.5 million
+# May 2023:334.9 million
+# Average: 333.2 million
+US_Population <- 333200000
+covid_vaccine_pop <- covid_vaccine_pop %>%
+  mutate(
+    doses_per_100k_adj = (total_dist_per_100k / US_Population) * 100000
+  )
+
+# Average age of individuals who got vaccinated that week: avg_age_vaccinated
+covid_vaccine_pop <- covid_vaccine_pop %>%
+  mutate(
+    avg_age_vaccinated_adj = runif(n(), min = 35, max = 50) # specifying what I want the averages to fall between
+  )
+
+set.seed(456)  # For reproducibility
+
+# Proportion Distributed of Pfizer: prop_pfizer
+covid_vaccine_pop <- covid_vaccine_pop %>%
+  mutate(
+    prop_pfizer_adj = total_dist_pfizer_per_100k / total_dist_per_100k
+  ) %>%
+  mutate(
+    # Center and scale prop_pfizer_adj
+    prop_pfizer_scaled = rescale(prop_pfizer_adj, to = c(0, 1)),
+    
+    # Public Health Campaign Score: positively correlated (~0.6)
+    public_health_campaign_score_adj = pmin(pmax(
+      0.6 * prop_pfizer_scaled + rnorm(n(), mean = 0, sd = 0.05), 0), 1),
+    
+    # COVID-19 Burden Score: negatively correlated (~-0.6)
+    covid_burden_score_adj = pmin(pmax(
+      0.6 * (1 - prop_pfizer_scaled) + rnorm(n(), mean = 0, sd = 0.05), 0), 1),
+    
+    # Accessibility Index: positively correlated (~0.5)
+    accessibility_index_adj = pmin(pmax(
+      0.5 * prop_pfizer_scaled + rnorm(n(), mean = 0, sd = 0.05), 0), 1),
+    
+    # Hesitancy Index: negatively correlated (~-0.5)
+    hesitancy_index_adj = pmin(pmax(
+      0.5 * (1 - prop_pfizer_scaled) + rnorm(n(), mean = 0, sd = 0.05), 0), 1),
+    
+    # Proportion Male: weakly correlated (small noise around 0.5)
+    Proportion_Male_adj = pmin(pmax(
+      0.5 + rnorm(n(), mean = 0, sd = 0.05), 0), 1)
+  ) %>%
+  select(-prop_pfizer_scaled)  # Clean up temporary scaled column
+
+```
+
+# Look at Correlations Between Predictors and the Outcome
+
+I will now assess the relationships between the predictors (prop_pfizer_adj ~ doses_per_100k_adj + avg_age_vaccinated_adj + hesitancy_index_adj + accessibility_index_adj + Proportion_Male_adj + public_health_campaign_score_adj + covid_burden_score_adj) and the outcome (prop_pfizer_adj). I want there to be some sort of relationship so that these synthetic variables can be used as predictors. BUT there should not be a perfect relationship. 
+
+```{r}
+# Select the outcome and predictors
+cor_data <- covid_vaccine_pop %>%
+  select(
+    prop_pfizer_adj, 
+    doses_per_100k_adj, 
+    avg_age_vaccinated_adj, 
+    hesitancy_index_adj, 
+    accessibility_index_adj, 
+    Proportion_Male_adj, 
+    public_health_campaign_score_adj, 
+    covid_burden_score_adj
+  )
+
+# Compute the correlation matrix
+cor_matrix <- cor(cor_data, use = "complete.obs")
+
+# View the correlation matrix
+print(cor_matrix)
+
+# Visualize with corrplot
+library(corrplot)
+
+corrplot(cor_matrix, 
+         method = "circle", 
+         type = "upper", 
+         number.cex = 0.4, 
+         tl.col = "black", 
+         tl.cex = 1, 
+         addCoef.col = "black", 
+         diag = FALSE)
+
+# Select outcome and predictors
+cor_data <- covid_vaccine_pop %>%
+  select(
+    prop_pfizer_adj, 
+    doses_per_100k_adj, 
+    avg_age_vaccinated_adj, 
+    hesitancy_index_adj, 
+    accessibility_index_adj, 
+    Proportion_Male_adj, 
+    public_health_campaign_score_adj, 
+    covid_burden_score_adj
+  )
+
+# Compute the correlation vector: just prop_pfizer_adj against everything else
+cor_vector <- cor(cor_data, use = "complete.obs")["prop_pfizer_adj", ] 
+
+# View as a simple rounded table
+round(cor_vector, 2)
+
+print(cor_vector)
+
+```
+
+Now, I will save this dataset. 
+
+```{r}
+# Save the cleaned dataset at an RDS to the data --> processed-data folder
+location_covid_pop <- here::here("data","processed-data", "covid-vaccine-popadjusted.rds")
+saveRDS(covid_vaccine_pop, file = location_covid_pop)
 ```
 
 
