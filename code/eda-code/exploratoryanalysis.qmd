@@ -26,6 +26,8 @@ library(readr)
 library(corrplot)
 library(stringr) # for string manipulation
 library(tibble)
+library(patchwork)
+library(tidyverse)
 ```
 
 
@@ -49,6 +51,7 @@ summary(data_adj)
 I will create a summary table displaying the minimum, mean, maximum etc. of each numeric variable within the population adjusted dataset. 
 
 ```{r}
+
 # Convert summary to a data frame
 summary_df <- summary(data_adj) %>%
   as.data.frame() %>%
@@ -1054,7 +1057,7 @@ manufacturer_yearly_plot_dist <- ggplot(manufacturer_yearly_dist, aes(x = Year, 
   scale_y_continuous(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
   scale_color_manual(values = custom_colors_manu) +
   theme_minimal() +
-  ggtitle("Figure Five: COVID-19 Vaccine Distribution by Primary \n Manufacturers Over Time (2021–2023)") +
+  ggtitle("Figure 5x: COVID-19 Vaccine Distribution by Primary \n Manufacturers Over Time (2021–2023)") +
   xlab("Year") +
   ylab("Total Doses Distributed (Millions)") +
   theme(
@@ -1106,7 +1109,7 @@ manufacturer_yearly_plot_admin <- ggplot(manufacturer_yearly_admin, aes(x = Year
   scale_y_continuous(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
   scale_color_manual(values = custom_colors_manu) +
   theme_minimal() +
-  ggtitle("Figure Six: COVID-19 Vaccine Administration by Primary \n Manufacturers Over Time (2021–2023)") +
+  ggtitle("Figure 6x: COVID-19 Vaccine Administration by Primary \n Manufacturers Over Time (2021–2023)") +
   xlab("Year") +
   ylab("Total Doses Administered (Millions)") +
   theme(
@@ -1170,7 +1173,7 @@ manufacturer_yearly_plot_dist_adj <- ggplot(manufacturer_yearly_dist_adj, aes(x 
   scale_y_continuous(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
   scale_color_manual(values = custom_colors_manu) +
   theme_minimal() +
-  ggtitle("Figure Five: Population Adjusted COVID-19 Vaccine Distribution by Primary \n Manufacturers Over Time (2021–2023)") +
+  ggtitle("Figure 5: Population Adjusted COVID-19 Vaccine Distribution by Primary \n Manufacturers Over Time (2021–2023)") +
   xlab("Year") +
   ylab("Total Doses Distributed per 100k (in Millions)") +
   theme(
@@ -1222,7 +1225,7 @@ manufacturer_yearly_plot_admin_adj <- ggplot(manufacturer_yearly_admin_adj, aes(
   scale_y_continuous(labels = scales::label_number(scale_cut = scales::cut_short_scale())) +
   scale_color_manual(values = custom_colors_manu) +
   theme_minimal() +
-  ggtitle("Figure Six: Population Adjusted COVID-19 Vaccine Administration by Primary \n Manufacturers Over Time (2021–2023)") +
+  ggtitle("Figure 6: Population Adjusted COVID-19 Vaccine Administration by Primary \n Manufacturers Over Time (2021–2023)") +
   xlab("Year") +
   ylab("Total Doses Administered per 100k (in Millions)") +
   theme(
