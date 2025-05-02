@@ -83,7 +83,7 @@ First, the data was obtained from the Centers for Disease Control and Prevention
 #| label: Schematic of Workflow for Analysis
 #| fig-cap: "Schematic of Workflow for Analysis"
 #| echo: FALSE
-knitr::include_graphics(here("assets", "workflow-schematic.png"))
+knitr::include_graphics(here("assets", "workflow-schematic-final.png"))
 ```
 
 ## Description of the Data and Data Acquisition
