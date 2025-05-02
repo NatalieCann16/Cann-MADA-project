@@ -70,7 +70,8 @@ Table one displays a summary of each variable of the COVID-19 vaccine dataset.
 #| label: Summary Statistics
 #| fig-cap: "Supplement Table 1: Summary Statistics of the Vaccination Data in Original Dataset and Population Adjusted Dataset"
 #| echo: FALSE
-knitr::include_graphics(here("results", "tables", "summary_statistics.png"))
+resulttable1 = readRDS(here("results","tables","summary_statistics.rds"))
+knitr::kable(resulttable1)
 ```
 
 Figure one displays the correlations between all variables within the COVID-19 vaccine population adjusted dataset. 

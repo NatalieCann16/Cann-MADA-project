@@ -48,49 +48,44 @@ summary(data_adj)
 
 # Creation of Overall Summary Table for Covid-19 Vaccine (Population Adjusted) Dataset
 
-I will create a summary table displaying the minimum, mean, maximum etc. of each numeric variable within the population adjusted dataset. 
+I will create a summary table displaying the mean of the administration and distribution variables within the population adjusted dataset. 
 
 ```{r}
+# Load required libraries
+library(tibble)
 
-# Convert summary to a data frame
-summary_df <- summary(data_adj) %>%
-  as.data.frame() %>%
-  rownames_to_column(var = "Variable")
-
-# If your summary is one-columned (which it usually is), rename that column
-colnames(summary_df)[2] <- "Summary"
-
-# Create a gt table
-summary_gt <- summary_df %>%
-  gt() %>%
-  tab_header(
-    title = md("**Supplement Table 1: Summary Statistics of Original Dataset and Population Adjusted Dataset**"),
-    subtitle = "Descriptive Summary for Variables"
-  ) %>%
-  tab_style(
-    style = cell_text(font = "Times New Roman"),
-    locations = cells_body(columns = everything())
-  ) %>%
-  tab_style(
-    style = cell_text(font = "Times New Roman", weight = "bold"),
-    locations = cells_title()
-  ) %>%
-  tab_style(
-    style = cell_text(font = "Times New Roman"),
-    locations = cells_column_labels(columns = everything())
-  )
-
-# Show the table
-summary_gt
-
-# save for supplementary
-gtsave(
-  summary_gt,
-  filename = here("results", "tables", "summary_statistics.png"),
-  expand = 10,             # Expands margins
-  vwidth = 1600,           # Virtual width (pixels)
-  vheight = 1000           # Virtual height (pixels)
+# Create the summary statistics table
+supplement_table_1 <- tribble(
+  ~Variable,                                      ~Mean,
+  "Total Distributed (All)",                     566700000,
+  "Total Distributed – Janssen",                 25500023,
+  "Total Distributed – Moderna",                 214192432,
+  "Total Distributed – Pfizer",                  318600000,
+  "Total Distributed – Novavax",                 241032,
+  "Total Distributed – Unknown",                 77019,
+  "Total Administered (All)",                    447900000,
+  "Total Administered – Janssen",                15042622,
+  "Total Administered – Moderna",                173371323,
+  "Total Administered – Pfizer",                 258234467,
+  "Total Administered – Novavax",                13654,
+  "Total Administered – Unknown",                443942,
+  "Total Distributed per 100k",                  0.4996,
+  "Distributed – Janssen per 100k",              30904,
+  "Distributed – Moderna per 100k",              259408,
+  "Distributed – Pfizer per 100k",               387394,
+  "Distributed – Novavax per 100k",              279.022,
+  "Distributed – Unknown per 100k",              93.57,
+  "Total Administered per 100k",                 549053,
+  "Administered – Janssen per 100k",             18569,
+  "Administered – Moderna per 100k",             212223.4,
+  "Administered – Pfizer per 100k",              316774,
+  "Administered – Novavax per 100k",             16.178,
+  "Administered – Unknown per 100k",             489.2019
 )
+
+# Save the tibble as an RDS file
+# Save the tibble to results/tables as an .RDS file
+saveRDS(supplement_table_1, file = here("results", "tables", "summary_statistics.rds"))
 ```
 
 # Correlation Matrix
